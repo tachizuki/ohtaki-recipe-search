@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>食材からさがす｜とにかく売れたい中華料理屋</title>
+<style>
+  :root {
+    --bg: #14100e; --bg-soft: #1e1815; --panel: #251d19; --panel-2: #2f2520;
+    --line: #3d302a; --text: #f4ece6; --text-dim: #a8988e;
+    --accent: #e8622c; --accent-soft: #7a3419; --gold: #e6b34a; --green: #6fb87a;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: "Yu Gothic", "Noto Sans JP", Meiryo, system-ui, sans-serif;
+    font-size: 15px; line-height: 1.65;
+  }
+  button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+  button { cursor: pointer; }
+  a { color: var(--accent); }
+  mark { background: var(--accent); color: #fff; border-radius: 3px; padding: 0 2px; }
+
+  .app { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 320px; flex: 0 0 320px; background: var(--bg-soft);
+    border-right: 1px solid var(--line); padding: 18px 16px 40px;
+    overflow-y: auto; max-height: 100vh; position: sticky; top: 0;
+  }
+  .main { flex: 1; padding: 18px 22px 60px; min-width: 0; }
+
+  .brand h1 { font-size: 17px; margin: 0 0 2px; letter-spacing: .02em; }
+  .meta-line { font-size: 11px; color: var(--text-dim); margin-bottom: 18px; }
+
+  .section { margin-bottom: 22px; }
+  .section > h2 {
+    font-size: 11px; letter-spacing: .12em; color: var(--text-dim);
+    margin: 0 0 8px; font-weight: 700;
+  }
+  .section.cart > h2 { color: var(--gold); }
+
+  .field {
+    width: 100%; background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 8px 10px; outline: none;
+  }
+  .field:focus { border-color: var(--accent); }
+
+  .mode-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
+  .mode-toggle button {
+    flex: 1; background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 7px 4px; font-size: 12px;
+    color: var(--text-dim); transition: .12s;
+  }
+  .mode-toggle button.on {
+    background: var(--accent-soft); border-color: var(--accent);
+    color: var(--text); font-weight: 700;
+  }
+
+  .hint { font-size: 11px; color: var(--text-dim); margin: 6px 0 0; }
+  .linkbtn { background: none; border: none; padding: 0; color: var(--accent); font-size: 12px; text-decoration: underline; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--accent-soft); border: 1px solid var(--accent);
+    border-radius: 999px; padding: 3px 6px 3px 10px; font-size: 12px; line-height: 1.5;
+  }
+  .chip.word { background: var(--panel-2); border-color: var(--line); }
+  .chip button { background: none; border: none; padding: 0 2px; color: var(--text); opacity: .7; font-size: 14px; line-height: 1; }
+  .chip button:hover { opacity: 1; }
+
+  .ing-list {
+    margin-top: 10px; max-height: 300px; overflow-y: auto;
+    border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  }
+  .ing-item {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    width: 100%; background: none; border: none; border-bottom: 1px solid var(--line);
+    padding: 7px 10px; text-align: left; font-size: 13px;
+  }
+  .ing-item:last-child { border-bottom: none; }
+  .ing-item:hover { background: var(--panel-2); }
+  .ing-item.on { background: var(--accent-soft); }
+  .ing-item.zero { opacity: .4; }
+  .ing-item .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ing-item .c { font-size: 11px; color: var(--text-dim); flex: 0 0 auto; }
+
+  .searchrow { display: flex; gap: 6px; }
+  .searchrow input { flex: 1; min-width: 0; }
+  .searchrow button {
+    flex: 0 0 auto; background: var(--accent); border: 1px solid var(--accent);
+    color: #fff; font-weight: 700; border-radius: var(--radius); padding: 8px 14px; font-size: 13px;
+  }
+
+  .progress { font-size: 11px; color: var(--text-dim); }
+  .progress b { color: var(--green); font-size: 13px; }
+  .bar { height: 5px; background: var(--panel); border-radius: 3px; overflow: hidden; margin: 6px 0 8px; }
+  .bar > i { display: block; height: 100%; background: var(--green); }
+
+  /* 作るリスト */
+  .cart-list { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+  .cart-row {
+    display: flex; align-items: center; gap: 6px; padding: 6px 8px;
+    border-bottom: 1px solid var(--line); font-size: 12px;
+  }
+  .cart-row:last-child { border-bottom: none; }
+  .cart-row .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cart-row select { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 2px 4px; font-size: 11px; }
+  .cart-row button { background: none; border: none; color: var(--text-dim); font-size: 14px; padding: 0 2px; }
+  .cart-row button:hover { color: var(--accent); }
+  .btn-full {
+    display: block; width: 100%; margin-top: 10px; text-align: center;
+    background: var(--gold); border: 1px solid var(--gold); color: #2a1e08;
+    font-weight: 700; border-radius: var(--radius); padding: 9px; font-size: 13px;
+  }
+  .btn-full:disabled { background: var(--panel); border-color: var(--line); color: var(--text-dim); font-weight: 400; cursor: default; }
+  .btn-full.save { background: var(--green); border-color: var(--green); color: #0d2312; }
+  .btn-full.save:disabled { background: var(--panel); border-color: var(--line); color: var(--text-dim); font-weight: 400; }
+  .tabs button#tabTodo { display: none; }
+  body.edit .tabs button#tabTodo { display: block; }
+
+  /* ツールバー */
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .count { font-size: 13px; color: var(--text-dim); }
+  .count b { color: var(--text); font-size: 16px; }
+  .spacer { flex: 1; }
+  select.field { width: auto; padding: 7px 26px 7px 10px; font-size: 13px; }
+  .tabs { display: flex; gap: 4px; }
+  .tabs button {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 6px 12px; font-size: 13px; color: var(--text-dim);
+  }
+  .tabs button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
+  .seg { display: flex; align-items: center; gap: 7px; }
+  .seg-label { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+  .seg .mode-toggle { margin-bottom: 0; }
+  .seg .mode-toggle button { padding: 6px 11px; flex: 0 0 auto; }
+
+  /* カード */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    overflow: hidden; display: flex; flex-direction: column; transition: .12s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .card.in-cart { border-color: var(--gold); }
+  .thumb-wrap { position: relative; cursor: pointer; background: #000; aspect-ratio: 16/9; }
+  .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .badge {
+    position: absolute; left: 8px; top: 8px; background: rgba(0,0,0,.72);
+    border-radius: 6px; padding: 2px 7px; font-size: 11px; font-weight: 700;
+  }
+  .badge.short { color: var(--gold); }
+  .fav-btn {
+    position: absolute; right: 6px; top: 6px; background: rgba(0,0,0,.6);
+    border: none; border-radius: 8px; width: 30px; height: 30px;
+    font-size: 15px; line-height: 1; color: #fff; opacity: .8;
+  }
+  .fav-btn:hover { opacity: 1; }
+  .fav-btn.on { color: var(--gold); opacity: 1; }
+
+  .card-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .card h3 {
+    font-size: 13.5px; margin: 0; line-height: 1.45; cursor: pointer;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .card h3:hover { color: var(--accent); }
+  .card-meta { font-size: 11px; color: var(--text-dim); }
+  .ing-preview { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tag {
+    font-size: 11px; background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 5px; padding: 1px 6px; color: var(--text-dim);
+  }
+  .tag.hit { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
+  .tag.more { border-style: dashed; }
+  .tag.empty { border-style: dashed; }
+  .snippet {
+    font-size: 12px; color: var(--text-dim); line-height: 1.6;
+    background: var(--bg-soft); border: 1px solid var(--line); border-radius: 7px;
+    padding: 7px 9px; white-space: pre-wrap; word-break: break-word;
+    max-height: 108px; overflow: hidden;
+  }
+  .memo-flag { font-size: 11px; color: var(--gold); }
+  .card-actions { display: flex; gap: 6px; margin-top: auto; padding-top: 4px; }
+  .card-actions a, .card-actions button {
+    flex: 1; text-align: center; text-decoration: none;
+    background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 7px; padding: 6px 4px; font-size: 12px; color: var(--text);
+  }
+  .card-actions a:hover, .card-actions button:hover { border-color: var(--accent); }
+  .card-actions button.cart-on { background: var(--gold); border-color: var(--gold); color: #2a1e08; font-weight: 700; }
+
+  .empty { text-align: center; padding: 70px 20px; color: var(--text-dim); }
+  .empty h2 { color: var(--text); font-size: 17px; margin-bottom: 8px; }
+
+  /* モーダル */
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(0,0,0,.75); display: none;
+    align-items: flex-start; justify-content: center; padding: 40px 16px;
+    overflow-y: auto; z-index: 50;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--bg-soft); border: 1px solid var(--line); border-radius: 14px;
+    max-width: 800px; width: 100%; padding: 22px 24px 28px; position: relative;
+  }
+  .modal .close {
+    position: absolute; right: 14px; top: 12px; background: none;
+    border: none; font-size: 22px; color: var(--text-dim);
+  }
+  .modal h2 { margin: 0 26px 6px 0; font-size: 19px; line-height: 1.4; }
+  .modal .m-meta { font-size: 12px; color: var(--text-dim); margin-bottom: 16px; }
+  .modal.wide { max-width: 1120px; }
+  .modal h4 { font-size: 11px; letter-spacing: .1em; color: var(--text-dim); margin: 20px 0 8px; }
+
+  /* 編集画面: 材料と概要欄を横に並べて見比べる */
+  .edit-split { display: flex; gap: 18px; align-items: flex-start; }
+  .edit-split > .col { flex: 1 1 0; min-width: 0; }
+  .edit-split > .col > h4:first-child { margin-top: 0; }
+  .edit-split #mIng { min-height: 440px; }
+  .edit-split pre { max-height: 440px; }
+  @media (max-width: 800px) {
+    .edit-split { flex-direction: column; gap: 4px; }
+    .edit-split #mIng { min-height: 160px; }
+    .edit-split pre { max-height: 260px; }
+  }
+  .modal pre {
+    white-space: pre-wrap; word-break: break-word; background: var(--panel);
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px;
+    font-family: inherit; font-size: 13px; color: var(--text);
+    max-height: 320px; overflow-y: auto; margin: 0;
+  }
+  .modal textarea { width: 100%; resize: vertical; }
+  #mIng { min-height: 110px; border-color: var(--accent); }
+  #mMemo { min-height: 64px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+  .btn {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 16px; text-decoration: none; color: var(--text); font-size: 13px;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .saved { font-size: 11px; color: var(--green); margin-left: 4px; }
+
+  .quickpick { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-top: 8px; }
+  .quick-label { font-size: 11px; color: var(--text-dim); margin-right: 2px; }
+  .quick {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px;
+    padding: 2px 10px; font-size: 12px; color: var(--text-dim);
+  }
+  .quick:hover { border-color: var(--accent); color: var(--text); }
+
+  /* 買い物リスト */
+  .shop-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .shop-table td, .shop-table th { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+  .shop-table th { font-size: 11px; color: var(--text-dim); font-weight: 400; letter-spacing: .08em; }
+  .shop-table td.amt { text-align: right; white-space: nowrap; color: var(--gold); }
+  .shop-table td.src { text-align: right; white-space: nowrap; font-size: 11px; color: var(--text-dim); width: 1%; }
+  .shop-table tr.warn td.amt { color: var(--text-dim); }
+  .recipe-rows { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+  .toggle-row { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 14px 0 4px; }
+  .toggle-row input { width: 15px; height: 15px; accent-color: var(--accent); }
+  .note { font-size: 12px; color: var(--text-dim); background: var(--panel); border: 1px solid var(--line);
+          border-radius: 8px; padding: 8px 10px; margin-top: 12px; }
+  .note.need { border-color: var(--accent-soft); }
+  .note b { color: var(--accent); font-weight: 700; }
+  .note .ok { color: var(--green); }
+  .note .skip { color: var(--text-dim); }
+
+  /* ローダー */
+  .loader { padding: 60px 24px; max-width: 700px; margin: 0 auto; }
+  .loader h2 { font-size: 20px; }
+  .loader ol { line-height: 2; padding-left: 20px; }
+  .loader code { background: var(--panel); border: 1px solid var(--line); padding: 1px 6px; border-radius: 5px; font-size: 12.5px; }
+  .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 28px; text-align: center; margin-top: 20px; color: var(--text-dim); }
+  .drop.over { border-color: var(--accent); background: var(--panel); }
+
+  .menu-toggle { display: none; }
+  @media (max-width: 880px) {
+    .app { flex-direction: column; }
+    .sidebar { width: 100%; flex: none; position: static; max-height: none; border-right: none; border-bottom: 1px solid var(--line); }
+    .sidebar.collapsed .collapsible { display: none; }
+    .menu-toggle {
+      display: block; width: 100%; margin-top: 10px; background: var(--panel);
+      border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; font-size: 13px;
+    }
+    .main { padding: 16px; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loader" class="loader">
+  <h2>動画データを読み込んでください</h2>
+  <p>このアプリは <code>videos.json</code> を読み込んで動きます。まだ生成していない場合は、同じフォルダで次を実行してください。</p>
+  <ol>
+    <li><code>$env:YOUTUBE_API_KEY="AIza..."; node fetch-videos.mjs --raw raw.json</code></li>
+    <li><code>node build-draft.mjs</code>（食材と分量の下書きを作る）</li>
+    <li>生成された <code>videos.json</code> を下のエリアにドラッグ＆ドロップ</li>
+  </ol>
+  <p class="hint">ローカルサーバー（<code>npx serve</code> など）経由で開くと、この操作なしで自動読み込みされます。</p>
+  <div id="drop" class="drop">
+    <p><b>videos.json をここにドロップ</b></p>
+    <p style="font-size:12px">または <label class="linkbtn" style="cursor:pointer">ファイルを選択<input type="file" id="filepick" accept=".json,application/json" hidden></label></p>
+  </div>
+  <p style="margin-top:18px"><button class="btn primary" id="demoBtn">サンプルデータで動作を確認する</button></p>
+  <p id="loadmsg" class="hint"></p>
+</div>
+
+<div class="app" id="app" style="display:none">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><h1>食材からさがす</h1></div>
+    <div class="meta-line" id="metaLine"></div>
+    <button class="menu-toggle" id="menuToggle">絞り込み条件を開く / 閉じる</button>
+
+    <div class="collapsible">
+      <div class="section cart">
+        <h2>作るリスト</h2>
+        <div class="cart-list" id="cartList"></div>
+        <button class="btn-full" id="shopBtn" disabled>買い物リストを作る</button>
+        <p class="hint"><button class="linkbtn" id="clearCart">作るリストを空にする</button></p>
+      </div>
+
+      <div class="section">
+        <h2>食材で絞り込む</h2>
+        <div class="mode-toggle">
+          <button id="modeAnd" class="on" title="選んだ食材をすべて使うレシピ">AND（全部含む）</button>
+          <button id="modeOr" title="選んだ食材のどれかを使うレシピ">OR（どれか含む）</button>
+        </div>
+        <input type="search" id="ingSearch" class="field" placeholder="食材名を検索（例: もやし）">
+        <div class="chips" id="selected"></div>
+        <div class="ing-list" id="ingList"></div>
+        <p class="hint"><button class="linkbtn" id="clearIng">選択をすべて解除</button></p>
+      </div>
+
+      <div class="section">
+        <h2>キーワード（概要欄の全文検索）</h2>
+        <div class="searchrow">
+          <input type="search" id="q" class="field" placeholder="例: 冷凍">
+          <button id="addBtn">検索</button>
+        </div>
+        <div class="chips" id="wordChips"></div>
+      </div>
+
+      <div class="section" id="editSection" style="display:none">
+        <h2>食材データ（編集モード）</h2>
+        <div class="progress" id="progressText"></div>
+        <div class="bar"><i id="progressBar" style="width:0%"></i></div>
+        <button class="btn-full save" id="saveIngBtn">未保存の変更はありません</button>
+        <p class="hint" id="saveHint"></p>
+        <p class="hint"><button class="linkbtn" id="aliasBtn">表記ゆれをまとめる</button></p>
+        <p class="hint"><button class="linkbtn" id="pantryBtn">常備品を編集する</button></p>
+        <p class="hint"><button class="linkbtn" id="weightBtn">重さの換算表を編集する</button></p>
+        <p class="hint"><button class="linkbtn" id="exportIng">ファイルとして書き出す</button></p>
+        <p class="hint"><label class="linkbtn" style="cursor:pointer">ファイルから読み込む<input type="file" id="importIng" accept=".json" hidden></label></p>
+      </div>
+
+      <div class="section">
+        <h2>お気に入り・メモ</h2>
+        <p class="hint"><button class="linkbtn" id="exportBtn">書き出す</button></p>
+        <p class="hint"><label class="linkbtn" style="cursor:pointer">読み込む<input type="file" id="importPick" accept=".json" hidden></label></p>
+      </div>
+
+      <div class="section" id="viewerPantry">
+        <h2>買い物リストの設定</h2>
+        <p class="hint"><button class="linkbtn" id="pantryBtn2">常備品を編集する</button></p>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="toolbar">
+      <div class="tabs">
+        <button id="tabAll" class="on">すべて</button>
+        <button id="tabFav">★ お気に入り</button>
+        <button id="tabMemo">メモあり</button>
+        <button id="tabTodo">食材が未登録</button>
+      </div>
+      <div class="seg">
+        <span class="seg-label">ショート動画</span>
+        <div class="mode-toggle">
+          <button id="durAll">含める</button>
+          <button id="durLong" class="on">除く</button>
+          <button id="durShort">のみ</button>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <span class="count" id="count"></span>
+      <select id="sort" class="field">
+        <option value="new">新しい順</option>
+        <option value="old">古い順</option>
+        <option value="views">再生回数順</option>
+        <option value="fewest">食材が少ない順</option>
+        <option value="title">タイトル順</option>
+      </select>
+    </div>
+    <div id="results"></div>
+  </main>
+</div>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+
+<script id="sampleData" type="application/json">
+{
+  "channelTitle": "【サンプルデータ】食材検索デモ",
+  "generatedAt": "2026-08-03T00:00:00.000Z",
+  "videos": [
+    { "videoId": "s1", "title": "【サンプル】シャキシャキもやし炒め", "url": "https://www.youtube.com/", "thumbnail": null,
+      "publishedAt": "2025-06-06T09:00:00Z", "durationSec": 512, "viewCount": 294918,
+      "ingredients": [
+        { "name": "もやし", "amount": "250g" },
+        { "name": "豚バラ肉", "amount": "100g" },
+        { "name": "玉ねぎ", "amount": "1/2個" },
+        { "name": "ごま油", "amount": "大さじ1" },
+        { "name": "醤油", "amount": "大さじ1" }
+      ],
+      "description": "（サンプルデータ）\n\n〜材料〜\n・もやし　250g\n・豚バラ肉　100g\n・玉ねぎ　1/2個\n・ごま油　大さじ1\n・醤油　大さじ1" },
+    { "videoId": "s2", "title": "【サンプル】本格四川風麻婆豆腐", "url": "https://www.youtube.com/", "thumbnail": null,
+      "publishedAt": "2025-05-16T09:00:00Z", "durationSec": 843, "viewCount": 1040084,
+      "ingredients": [
+        { "name": "木綿豆腐", "amount": "300g" },
+        { "name": "豚ひき肉", "amount": "100g" },
+        { "name": "玉ねぎ", "amount": "1/2個" },
+        { "name": "長ねぎ", "amount": "1/2本" },
+        { "name": "豆板醤", "amount": "大さじ1" },
+        { "name": "醤油", "amount": "小さじ2" }
+      ],
+      "description": "（サンプルデータ）\n\n〜材料〜\n・木綿豆腐　300g\n・豚ひき肉　100g\n・玉ねぎ　1/2個\n・長ねぎ　1/2本\n・豆板醤　大さじ1\n・醤油　小さじ2" },
+    { "videoId": "s3", "title": "【サンプル】お店レベルの唐揚げ", "url": "https://www.youtube.com/", "thumbnail": null,
+      "publishedAt": "2024-12-20T09:00:00Z", "durationSec": 1024, "viewCount": 2269385,
+      "ingredients": [
+        { "name": "鶏もも肉", "amount": "2枚" },
+        { "name": "片栗粉", "amount": "大さじ4" },
+        { "name": "醤油", "amount": "大さじ2" },
+        { "name": "サラダ油", "amount": "適量" }
+      ],
+      "description": "（サンプルデータ）\n\n〜材料〜\n・鶏もも肉　2枚\n・片栗粉　大さじ4\n・醤油　大さじ2\n・サラダ油　適量" },
+    { "videoId": "s4", "title": "【サンプル】30秒でわかる回鍋肉", "url": "https://www.youtube.com/", "thumbnail": null,
+      "publishedAt": "2024-07-05T09:00:00Z", "durationSec": 45, "viewCount": 164761,
+      "description": "（サンプルデータ）ショート動画の例。食材が未登録の状態です。" },
+    { "videoId": "s5", "title": "【サンプル】お店の裏側をお見せします", "url": "https://www.youtube.com/", "thumbnail": null,
+      "publishedAt": "2023-11-17T09:00:00Z", "durationSec": 300, "viewCount": 12345,
+      "description": "（サンプルデータ）雑談回です。材料の記載はありません。" }
+  ]
+}
+</script>
+
+<script>
+(function () {
+  'use strict';
+
+  // =========================================================================
+  // 分量の解析と合算
+  //
+  // 単一ファイル構成を保つためここに実装している。
+  // 同じロジックが amount.mjs にもあり、test-amount.mjs でテストされている。
+  // どちらかを直したら、もう一方も直すこと。
+  // =========================================================================
+  var VOLUME = {
+    ml: 1, cc: 1, ミリリットル: 1, l: 1000, L: 1000, リットル: 1000,
+    大さじ: 15, おおさじ: 15, 大匙: 15, 小さじ: 5, こさじ: 5, 小匙: 5,
+    カップ: 200, cup: 200, 合: 180
+  };
+  var WEIGHT = { g: 1, グラム: 1, kg: 1000, キロ: 1000, キログラム: 1000, mg: 0.001 };
+  var COUNT_UNITS = ['個','こ','ヶ','ケ','本','枚','片','束','袋','缶','尾','丁','株','玉','房',
+                     '匹','節','枝','粒','かけ','パック','つ','杯','切れ','かたまり','羽','膳','人前','人分'];
+  var VAGUE = ['適量','適宜','少々','少量','少し','ひとつまみ','一つまみ','ふたつまみ',
+               'お好みで','お好み','好みで','好きなだけ','たっぷり','同量','各適量','大量'];
+  var VULGAR = { '½': 0.5, '⅓': 1/3, '⅔': 2/3, '¼': 0.25, '¾': 0.75, '⅛': 0.125 };
+  var KANJI_NUM = { 一:1, 二:2, 三:3, 四:4, 五:5, 六:6, 七:7, 八:8, 九:9, 十:10 };
+  var NUM_CHARS = '0-9./,と〜~\\-–—ー½⅓⅔¼¾⅛半一二三四五六七八九十';
+
+  function toHalfWidth(s) {
+    return String(s || '').replace(/[！-～]/g, function (c) {
+      return String.fromCharCode(c.charCodeAt(0) - 0xfee0);
+    });
+  }
+
+  function parseNumber(text) {
+    var s = toHalfWidth(text).replace(/\s+/g, '');
+    if (!s) return null;
+    var total = 0, matched = false;
+    if (s[0] === '半') return 0.5;
+    if (KANJI_NUM[s[0]] != null) return KANJI_NUM[s[0]];
+    var wa = s.match(/^(\d+(?:[.,]\d+)?)と/);
+    if (wa) { total += Number(wa[1].replace(',', '.')); matched = true; s = s.slice(wa[0].length); }
+    var frac = s.match(/^(\d+)\s*\/\s*(\d+)/);
+    if (frac) { var den = Number(frac[2]); if (!den) return null; return total + Number(frac[1]) / den; }
+    if (s && VULGAR[s[0]] != null) return total + VULGAR[s[0]];
+    var range = s.match(/^(\d+(?:[.,]\d+)?)\s*[〜~\-–—ー]\s*(\d+(?:[.,]\d+)?)/);
+    if (range) return total + Number(range[1].replace(',', '.'));
+    var num = s.match(/^(\d+(?:[.,]\d+)?)/);
+    if (num) return total + Number(num[1].replace(',', '.'));
+    return matched ? total : null;
+  }
+
+  function formatNumber(n) {
+    if (n == null || !isFinite(n)) return '';
+    var r = Math.round(n * 1000) / 1000;
+    if (Number.isInteger(r)) return String(r);
+    var whole = Math.floor(r), frac = r - whole;
+    var table = [[0.5,'1/2'],[1/3,'1/3'],[2/3,'2/3'],[0.25,'1/4'],[0.75,'3/4'],
+                 [0.125,'1/8'],[0.375,'3/8'],[0.625,'5/8'],[0.875,'7/8']];
+    for (var i = 0; i < table.length; i++) {
+      if (Math.abs(frac - table[i][0]) < 0.02) return whole > 0 ? whole + 'と' + table[i][1] : table[i][1];
+    }
+    return String(Math.round(r * 10) / 10);
+  }
+
+  var VOLUME_KEYS = Object.keys(VOLUME).sort(function (a, b) { return b.length - a.length; });
+  var WEIGHT_KEYS = Object.keys(WEIGHT).sort(function (a, b) { return b.length - a.length; });
+  var COUNT_KEYS = COUNT_UNITS.slice().sort(function (a, b) { return b.length - a.length; });
+  var SPOONS = ['大さじ','おおさじ','大匙','小さじ','こさじ','小匙','カップ'];
+
+  function parseAmount(text) {
+    var raw = String(text || '').trim();
+    if (!raw) return { kind: 'unknown', value: null, unit: '', text: '' };
+    var s = toHalfWidth(raw).replace(/\s+/g, '');
+    for (var i = 0; i < VAGUE.length; i++) {
+      if (s.indexOf(VAGUE[i]) !== -1) return { kind: 'vague', value: null, unit: '', text: raw };
+    }
+    // 「半分」は数量だが単位が書かれていない。unit を空にして後で寄せる
+    if (/^半分$/.test(s)) return { kind: 'count', value: 0.5, unit: '', text: raw };
+    for (var j = 0; j < SPOONS.length; j++) {
+      if (s.indexOf(SPOONS[j]) === 0) {
+        var n0 = parseNumber(s.slice(SPOONS[j].length));
+        if (n0 == null) return { kind: 'unknown', value: null, unit: '', text: raw };
+        return { kind: 'volume', value: n0 * VOLUME[SPOONS[j]], unit: 'ml', text: raw };
+      }
+    }
+    var n = parseNumber(s);
+    if (n == null) return { kind: 'unknown', value: null, unit: '', text: raw };
+    var rest = s.replace(new RegExp('^[' + NUM_CHARS + ']+'), '');
+    var k;
+    for (k = 0; k < VOLUME_KEYS.length; k++) {
+      if (rest.indexOf(VOLUME_KEYS[k]) === 0) return { kind: 'volume', value: n * VOLUME[VOLUME_KEYS[k]], unit: 'ml', text: raw };
+    }
+    for (k = 0; k < WEIGHT_KEYS.length; k++) {
+      if (rest.indexOf(WEIGHT_KEYS[k]) === 0) return { kind: 'weight', value: n * WEIGHT[WEIGHT_KEYS[k]], unit: 'g', text: raw };
+    }
+    for (k = 0; k < COUNT_KEYS.length; k++) {
+      if (rest.indexOf(COUNT_KEYS[k]) === 0) return { kind: 'count', value: n, unit: COUNT_KEYS[k], text: raw };
+    }
+    if (!rest) return { kind: 'count', value: n, unit: '', text: raw };
+    return { kind: 'unknown', value: null, unit: '', text: raw };
+  }
+
+  function formatVolume(ml) {
+    if (ml >= 200 && ml % 200 === 0) return formatNumber(ml / 200) + 'カップ';
+    if (ml >= 100) return formatNumber(ml) + 'ml';
+    if (ml % 15 === 0) return '大さじ' + formatNumber(ml / 15);
+    if (ml % 5 === 0) return '小さじ' + formatNumber(ml / 5);
+    return formatNumber(ml) + 'ml';
+  }
+  function formatWeight(g) {
+    if (g >= 1000) return formatNumber(g / 1000) + 'kg';
+    return formatNumber(g) + 'g';
+  }
+
+  /**
+   * entries: [{ text: '1/2個', factor: 1 }]
+   * 足せるものだけ足し、足せないものは併記する。推定はしない。
+   */
+  function sumScaled(entries, conv) {
+    var ml = 0, hasVol = false, g = 0, hasW = false;
+    var counts = new Map(), vague = [], unknown = [], exact = true;
+    var converted = false;
+
+    entries.forEach(function (e) {
+      var a = parseAmount(e.text);
+      var f = e.factor == null ? 1 : e.factor;
+      if (a.kind === 'volume') { ml += a.value * f; hasVol = true; }
+      else if (a.kind === 'weight') { g += a.value * f; hasW = true; }
+      else if (a.kind === 'count') counts.set(a.unit, (counts.get(a.unit) || 0) + a.value * f);
+      else if (a.kind === 'vague') { exact = false; if (a.text && vague.indexOf(a.text) === -1) vague.push(a.text); }
+      else { exact = false; if (a.text && unknown.indexOf(a.text) === -1) unknown.push(a.text); }
+    });
+
+    // 重さ→個数の換算。「玉ねぎ 1個 = 200g」が分かっていれば
+    // 「1/2個 + 100g」を「1個」にまとめられる。
+    if (conv && conv.unit && conv.per > 0 && hasW) {
+      counts.set(conv.unit, (counts.get(conv.unit) || 0) + g / conv.per);
+      g = 0; hasW = false; converted = true;
+    }
+
+    // 単位なしの数量（「半分」「1」）を、同じ食材の他の単位に寄せる。
+    // 候補が1つだけのときに限る。複数あるとどれに寄せるか決まらないため。
+    if (counts.has('')) {
+      var others = Array.from(counts.keys()).filter(function (u) { return u !== ''; });
+      if (others.length === 1) {
+        counts.set(others[0], counts.get(others[0]) + counts.get(''));
+        counts.delete('');
+      } else if (others.length === 0) {
+        counts.set('個', counts.get(''));
+        counts.delete('');
+      }
+    }
+
+    var parts = [];
+    counts.forEach(function (val, unit) { parts.push(formatNumber(val) + (unit || '個')); });
+    if (hasW) parts.push(formatWeight(g));
+    if (hasVol) parts.push(formatVolume(ml));
+    unknown.forEach(function (u) { parts.push(u); });
+
+    if (!parts.length) return { text: vague.length ? vague.join('／') : '', exact: false, converted: false };
+    return { text: parts.join(' ＋ '), exact: exact && parts.length === 1, converted: converted };
+  }
+
+  // =========================================================================
+  // 状態
+  // =========================================================================
+  var LS_FAV = 'tonityu.favs.v1', LS_MEMO = 'tonityu.memos.v1',
+      LS_ING = 'tonityu.ingredients.v2', LS_ALIAS = 'tonityu.aliases.v1',
+      LS_CART = 'tonityu.cart.v1', LS_PANTRY = 'tonityu.pantry.v1',
+      LS_WEIGHT = 'tonityu.unitweights.v1';
+
+  var DEFAULT_ALIASES = [
+    ['生姜','しょうが','ショウガ'], ['にんにく','ニンニク','大蒜'],
+    ['ねぎ','ネギ','葱'], ['長ねぎ','長ネギ','長葱'], ['小ねぎ','小ネギ','小葱'],
+    ['玉ねぎ','玉ネギ','たまねぎ','タマネギ','玉葱'],
+    ['醤油','しょうゆ','ショウユ'], ['胡椒','こしょう','コショウ'],
+    ['塩','しお'], ['砂糖','さとう'], ['卵','たまご','玉子'],
+    ['片栗粉','かたくり粉'], ['ごま油','胡麻油','ゴマ油'],
+    ['豆板醤','トウバンジャン'], ['甜麺醤','テンメンジャン'],
+    ['にんじん','ニンジン','人参'], ['じゃがいも','ジャガイモ','じゃが芋'],
+    ['きくらげ','キクラゲ','木耳'], ['えび','エビ','海老'],
+    ['なす','ナス','茄子'], ['きゅうり','キュウリ','胡瓜'], ['もやし','モヤシ'],
+    ['豆腐','とうふ'], ['白菜','はくさい'], ['大根','だいこん']
+  ];
+
+  /**
+   * 家にある前提で買い物リストから外すもの（初期値）。
+   *
+   * ユーザーが自分で編集するものなので、初期値は「まず誰の家にもある」ものだけに絞る。
+   * 甜麺醤・豆板醤のような専門的な調味料を最初から常備品にすると、
+   * 買い足しが必要なのにリストから消える。必要な人が自分で足せばよい。
+   */
+  var DEFAULT_PANTRY = [
+    '塩','砂糖','醤油','酒','酢','みりん',
+    '胡椒','白胡椒','黒胡椒',
+    'サラダ油','ごま油',
+    '片栗粉','水溶き片栗粉','小麦粉','薄力粉',
+    '水'
+  ];
+
+  /**
+   * 編集モード。URL に ?edit=1 が付いているときだけ食材を編集できる。
+   *
+   * これは隠しているだけで、セキュリティ対策ではない。
+   * ただし編集内容の保存先は各自のブラウザ（localStorage）と手元のファイルだけで、
+   * サーバーへ書き込む経路が存在しないため、他のユーザーには影響しない。
+   */
+  var EDIT = /(?:^|[?&])edit=1(?:&|$)/.test(location.search);
+
+  var state = {
+    data: null, videos: [], ingIndex: [],
+    selected: new Set(), words: [], mode: 'and', ingQuery: '',
+    tab: 'all', dur: 'long', sort: 'new',
+    favs: loadJSON(LS_FAV, []), memos: loadJSON(LS_MEMO, {}),
+    ing: loadJSON(LS_ING, {}), aliases: loadJSON(LS_ALIAS, null),
+    cart: loadJSON(LS_CART, {}), pantry: loadJSON(LS_PANTRY, null),
+    unitWeights: loadJSON(LS_WEIGHT, null),
+    excludePantry: true, useWeightConv: true,
+    dirty: false,        // 未保存の編集があるか
+    dirHandle: null      // 保存先フォルダ（File System Access API）
+  };
+  state.favs = new Set(Array.isArray(state.favs) ? state.favs : []);
+  if (!state.ing || typeof state.ing !== 'object') state.ing = {};
+  if (!state.cart || typeof state.cart !== 'object') state.cart = {};
+  if (!Array.isArray(state.aliases)) state.aliases = DEFAULT_ALIASES.slice();
+  if (!Array.isArray(state.pantry)) state.pantry = DEFAULT_PANTRY.slice();
+  if (!state.unitWeights || typeof state.unitWeights !== 'object') state.unitWeights = {};
+
+  function loadJSON(key, fallback) {
+    try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+    catch (e) { return fallback; }
+  }
+  function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+  function saveFavs()   { save(LS_FAV, Array.from(state.favs)); }
+  function saveMemos()  { save(LS_MEMO, state.memos); }
+  function saveIng()    { save(LS_ING, state.ing); }
+  function saveAlias()  { save(LS_ALIAS, state.aliases); }
+  function saveCart()   { save(LS_CART, state.cart); }
+  function savePantry() { save(LS_PANTRY, state.pantry); }
+  function saveWeights() { save(LS_WEIGHT, state.unitWeights); }
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // =========================================================================
+  // 正規化
+  // =========================================================================
+  var RE_DROP = /[\s　・･、,．.\-–—ー〜~()（）「」『』【】\[\]:：;；!！?？'"”’]/;
+
+  function normWithMap(s) {
+    var src = String(s || ''), text = '', map = [];
+    for (var i = 0; i < src.length; i++) {
+      var c = src[i], code = c.charCodeAt(0);
+      if (code >= 0xff01 && code <= 0xff5e) { c = String.fromCharCode(code - 0xfee0); code = c.charCodeAt(0); }
+      if (code >= 0x30a1 && code <= 0x30f6) { c = String.fromCharCode(code - 0x60); }
+      if (RE_DROP.test(c)) continue;
+      text += c.toLowerCase();
+      map.push(i);
+    }
+    return { text: text, map: map };
+  }
+  function norm(s) { return normWithMap(s).text; }
+
+  var canonMap = new Map();
+  function rebuildCanonMap() {
+    canonMap = new Map();
+    state.aliases.forEach(function (group) {
+      if (!Array.isArray(group) || !group.length) return;
+      var canonical = String(group[0]).trim();
+      if (!canonical) return;
+      group.forEach(function (name) {
+        var k = norm(name);
+        if (k) canonMap.set(k, canonical);
+      });
+    });
+  }
+  function canon(name) { return canonMap.get(norm(name)) || name; }
+
+  var pantrySet = new Set();
+  function rebuildPantry() {
+    pantrySet = new Set();
+    state.pantry.forEach(function (p) {
+      var k = norm(canon(p));
+      if (k) pantrySet.add(k);
+    });
+  }
+  function isPantry(name) { return pantrySet.has(norm(name)); }
+
+  /**
+   * その食材の「1個あたりの重さ」を引く。
+   * 概要欄の「玉ねぎ 1個（200g）」から build-draft.mjs が集めたもの。
+   * 同じ食材に複数の単位があれば、記載件数が多い方を採る。
+   */
+  var weightIndex = new Map();
+  function rebuildWeights() {
+    weightIndex = new Map();
+    Object.keys(state.unitWeights).forEach(function (key) {
+      var w = state.unitWeights[key];
+      if (!w || !w.per || !w.unit) return;
+      var k = norm(canon(w.name || key.split('|')[0]));
+      if (!k) return;
+      var cur = weightIndex.get(k);
+      if (!cur || (w.samples || 0) > (cur.samples || 0)) {
+        weightIndex.set(k, { unit: w.unit, per: Number(w.per), samples: w.samples || 1 });
+      }
+    });
+  }
+  function weightConvOf(name) {
+    if (!state.useWeightConv) return null;
+    return weightIndex.get(norm(name)) || null;
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d)) return '';
+    return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
+  }
+  function fmtViews(n) {
+    if (n == null) return '';
+    if (n >= 10000) return (n / 10000).toFixed(n >= 100000 ? 0 : 1) + '万回';
+    return n.toLocaleString() + '回';
+  }
+  function fmtDur(sec) {
+    if (!sec) return '';
+    return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+  }
+  function isShort(v) { return (v.durationSec == null ? 999 : v.durationSec) <= 60; }
+
+  // =========================================================================
+  // 食材データ
+  // =========================================================================
+
+  /** 文字列配列 / オブジェクト配列 のどちらでも受け取れるようにする */
+  function normalizeIngList(list) {
+    if (!Array.isArray(list)) return [];
+    return list.map(function (x) {
+      if (typeof x === 'string') return { name: x, amount: '' };
+      if (x && typeof x === 'object' && x.name) return { name: String(x.name), amount: String(x.amount || '') };
+      return null;
+    }).filter(Boolean);
+  }
+
+  function ingOf(v) {
+    var edited = state.ing[v.videoId];
+    if (Array.isArray(edited)) return normalizeIngList(edited);
+    return normalizeIngList(v.ingredients);
+  }
+
+  /** 「玉ねぎ 1/2個」のような行を { name, amount } にする */
+  function parseIngInput(text) {
+    var out = [], seen = {};
+    String(text || '').split(/[\n\r]+/).forEach(function (line) {
+      var s = line.trim();
+      if (!s) return;
+      var name = s, amount = '';
+      var m = s.match(/^(.*\S)[ 　\t]+(\S+)$/);
+      if (m) {
+        var tail = m[2];
+        // 末尾が分量らしければ分ける。「豚バラ肉 薄切り」を誤って分けないため
+        var a = parseAmount(tail);
+        if (a.kind !== 'unknown') { name = m[1].trim(); amount = tail; }
+      }
+      if (!name || seen[name]) return;
+      seen[name] = 1;
+      out.push({ name: name, amount: amount });
+    });
+    return out;
+  }
+
+  function ingToText(list) {
+    return list.map(function (x) { return x.amount ? x.name + ' ' + x.amount : x.name; }).join('\n');
+  }
+
+  function applyIngToVideo(v) {
+    v._raw = ingOf(v);
+    v._ing = [];
+    v._raw.forEach(function (x) {
+      var c = canon(x.name);
+      if (v._ing.indexOf(c) === -1) v._ing.push(c);
+    });
+    v._ingNorm = v._ing.map(norm);
+  }
+
+  function rebuildIndex() {
+    rebuildCanonMap();
+    rebuildPantry();
+    rebuildWeights();
+    var freq = new Map();
+    state.videos.forEach(function (v) {
+      applyIngToVideo(v);
+      var seen = new Set();
+      v._ing.forEach(function (n) {
+        if (seen.has(n)) return;
+        seen.add(n);
+        freq.set(n, (freq.get(n) || 0) + 1);
+      });
+    });
+    state.ingIndex = Array.from(freq.entries())
+      .map(function (e) { return { name: e[0], total: e[1], n: norm(e[0]) }; })
+      .sort(function (a, b) { return b.total - a.total || a.name.localeCompare(b.name, 'ja'); });
+  }
+
+  // =========================================================================
+  // 読み込み
+  // =========================================================================
+  function normalizeData(json) {
+    var videos = Array.isArray(json) ? json : (json.videos || json.recipes || []);
+    var data = Array.isArray(json) ? { videos: videos } : json;
+    data.videos = videos;
+    videos.forEach(function (v) {
+      v.description = v.description || '';
+      v.title = v.title || '';
+      v._t = normWithMap(v.title);
+      v._d = normWithMap(v.description);
+      v._blob = v._t.text + '\n' + v._d.text;
+    });
+    return data;
+  }
+
+  function applyIngredientsFile(json, overwriteEdits) {
+    if (json && Array.isArray(json.aliases) && json.aliases.length) { state.aliases = json.aliases; saveAlias(); }
+    if (json && Array.isArray(json.pantry)) { state.pantry = json.pantry; savePantry(); }
+    if (json && json.unitWeights && typeof json.unitWeights === 'object') {
+      state.unitWeights = json.unitWeights; saveWeights();
+    }
+    var items = (json && json.items) ? json.items : json;
+    if (!items || typeof items !== 'object') return 0;
+    var n = 0;
+    state.videos.forEach(function (v) {
+      var list = items[v.videoId];
+      if (!Array.isArray(list)) return;
+      v.ingredients = normalizeIngList(list);
+      if (overwriteEdits) delete state.ing[v.videoId];
+      n++;
+    });
+    if (overwriteEdits) saveIng();
+    return n;
+  }
+
+  function boot(json) {
+    try {
+      state.data = normalizeData(json);
+      state.videos = state.data.videos;
+      if (!state.videos.length) throw new Error('動画が0件です');
+    } catch (e) {
+      $('loadmsg').textContent = '読み込みに失敗しました: ' + e.message;
+      return;
+    }
+    fetch('ingredients.json')
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (j) { applyIngredientsFile(j, false); })
+      .catch(function () {})
+      .then(start, start);
+  }
+
+  // =========================================================================
+  // 保存（編集モード専用）
+  // =========================================================================
+
+  /** 書き出す内容 */
+  function ingredientsPayload() {
+    var items = {};
+    state.videos.forEach(function (v) { if (v._raw.length) items[v.videoId] = v._raw; });
+    return JSON.stringify({
+      generatedAt: new Date().toISOString(),
+      aliases: state.aliases, pantry: state.pantry,
+      unitWeights: state.unitWeights, items: items
+    }, null, 2);
+  }
+
+  function markDirty() {
+    state.dirty = true;
+    updateSaveButton();
+  }
+
+  function updateSaveButton() {
+    var btn = $('saveIngBtn');
+    if (!btn) return;
+    btn.disabled = !state.dirty;
+    btn.textContent = state.dirty ? 'ingredients.json に保存する' : '未保存の変更はありません';
+    var hint = $('saveHint');
+    if (!hint) return;
+    if (state.dirHandle) hint.textContent = '保存先のフォルダは選択済みです。';
+    else if (window.showDirectoryPicker) hint.textContent = '初回だけ保存先のフォルダ（index.html があるフォルダ）を選んでください。';
+    else hint.textContent = 'このブラウザは直接保存に対応していないため、ダウンロードになります。';
+  }
+
+  /**
+   * ingredients.json を上書き保存する。
+   * File System Access API が使えれば直接書き込み、駄目ならダウンロードにする。
+   */
+  async function saveIngredientsFile() {
+    var text = ingredientsPayload();
+
+    if (window.showDirectoryPicker) {
+      try {
+        if (!state.dirHandle) {
+          state.dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        }
+        var perm = await state.dirHandle.queryPermission({ mode: 'readwrite' });
+        if (perm !== 'granted') {
+          perm = await state.dirHandle.requestPermission({ mode: 'readwrite' });
+        }
+        if (perm !== 'granted') throw new Error('書き込みの許可が得られませんでした');
+
+        var fh = await state.dirHandle.getFileHandle('ingredients.json', { create: true });
+        var w = await fh.createWritable();
+        await w.write(text);
+        await w.close();
+
+        state.dirty = false;
+        updateSaveButton();
+        $('saveHint').textContent = '保存しました（' + new Date().toLocaleTimeString() + '）。git push で公開されます。';
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;   // フォルダ選択をキャンセルした
+        state.dirHandle = null;
+        $('saveHint').textContent = '直接保存に失敗したためダウンロードします: ' + (err && err.message ? err.message : err);
+      }
+    }
+
+    download('ingredients.json', text);
+    state.dirty = false;
+    updateSaveButton();
+  }
+
+  function start() {
+    $('loader').style.display = 'none';
+    $('app').style.display = 'flex';
+
+    if (EDIT) {
+      document.body.classList.add('edit');
+      $('editSection').style.display = '';
+      $('viewerPantry').style.display = 'none';
+    }
+
+    var d = state.data;
+    $('metaLine').textContent = (d.channelTitle || '') + '　動画 ' + state.videos.length + ' 本' +
+      (d.generatedAt ? ' / 取得 ' + fmtDate(d.generatedAt) : '');
+    rebuildIndex();
+    bindEvents();
+    renderSidebar();
+    render();
+    updateSaveButton();
+
+    // 未保存のまま閉じようとしたら確認する
+    window.addEventListener('beforeunload', function (e) {
+      if (!EDIT || !state.dirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    });
+  }
+
+  fetch('videos.json')
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(boot)
+    .catch(function () {
+      $('loadmsg').textContent = location.protocol === 'file:'
+        ? 'ファイルを直接開いているため自動読み込みできません。videos.json をドロップするか、下のボタンでサンプルを表示してください。'
+        : 'videos.json が見つかりませんでした。';
+    });
+
+  var drop = $('drop');
+  ['dragenter','dragover'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); });
+  });
+  ['dragleave','drop'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); });
+  });
+  drop.addEventListener('drop', function (e) { var f = e.dataTransfer.files[0]; if (f) readFile(f); });
+  $('filepick').addEventListener('change', function (e) { var f = e.target.files[0]; if (f) readFile(f); });
+  $('demoBtn').addEventListener('click', function () {
+    try { boot(JSON.parse(document.getElementById('sampleData').textContent)); }
+    catch (err) { $('loadmsg').textContent = 'サンプルデータの読み込みに失敗しました: ' + err.message; }
+  });
+  function readFile(file) {
+    var fr = new FileReader();
+    fr.onload = function () {
+      try { boot(JSON.parse(fr.result)); }
+      catch (err) { $('loadmsg').textContent = 'JSON を解析できませんでした: ' + err.message; }
+    };
+    fr.readAsText(file, 'utf-8');
+  }
+
+  // =========================================================================
+  // 絞り込み
+  // =========================================================================
+  function hasIngredient(v, needle) {
+    for (var i = 0; i < v._ingNorm.length; i++) if (v._ingNorm[i].indexOf(needle) !== -1) return true;
+    return false;
+  }
+  function matchedIdx(v) {
+    var hits = new Set();
+    state.selected.forEach(function (sel) {
+      var n = norm(sel);
+      v._ingNorm.forEach(function (name, idx) { if (name.indexOf(n) !== -1) hits.add(idx); });
+    });
+    return hits;
+  }
+  function passes(v) {
+    if (state.tab === 'fav' && !state.favs.has(v.videoId)) return false;
+    if (state.tab === 'memo' && !(state.memos[v.videoId] || '').trim()) return false;
+    if (state.tab === 'todo' && v._ing.length > 0) return false;
+    if (state.dur === 'long' && isShort(v)) return false;
+    if (state.dur === 'short' && !isShort(v)) return false;
+    for (var i = 0; i < state.words.length; i++) {
+      if (v._blob.indexOf(norm(state.words[i])) === -1) return false;
+    }
+    var sels = Array.from(state.selected).map(norm).filter(Boolean);
+    if (!sels.length) return true;
+    var hit = 0;
+    for (var j = 0; j < sels.length; j++) if (hasIngredient(v, sels[j])) hit++;
+    return state.mode === 'and' ? hit === sels.length : hit > 0;
+  }
+  function filtered() {
+    var cmp = {
+      new:    function (a, b) { return (b.publishedAt || '').localeCompare(a.publishedAt || ''); },
+      old:    function (a, b) { return (a.publishedAt || '').localeCompare(b.publishedAt || ''); },
+      views:  function (a, b) { return (b.viewCount || 0) - (a.viewCount || 0); },
+      fewest: function (a, b) { return (a._ing.length || 99) - (b._ing.length || 99); },
+      title:  function (a, b) { return (a.title || '').localeCompare(b.title || '', 'ja'); }
+    }[state.sort];
+    return state.videos.filter(passes).sort(cmp);
+  }
+
+  // =========================================================================
+  // ハイライト
+  // =========================================================================
+  function matchRanges(nm) {
+    var ranges = [];
+    state.words.forEach(function (w) {
+      var n = norm(w);
+      if (!n) return;
+      var i = nm.text.indexOf(n);
+      while (i !== -1 && ranges.length < 400) {
+        ranges.push([nm.map[i], nm.map[i + n.length - 1] + 1]);
+        i = nm.text.indexOf(n, i + n.length);
+      }
+    });
+    ranges.sort(function (a, b) { return a[0] - b[0]; });
+    var merged = [];
+    ranges.forEach(function (r) {
+      var last = merged[merged.length - 1];
+      if (last && r[0] <= last[1]) last[1] = Math.max(last[1], r[1]);
+      else merged.push([r[0], r[1]]);
+    });
+    return merged;
+  }
+  function renderWithMarks(text, ranges, from, to) {
+    var html = '', pos = from;
+    for (var i = 0; i < ranges.length; i++) {
+      var s = ranges[i][0], e = ranges[i][1];
+      if (e <= from) continue;
+      if (s >= to) break;
+      var ss = Math.max(s, from), ee = Math.min(e, to);
+      html += esc(text.slice(pos, ss)) + '<mark>' + esc(text.slice(ss, ee)) + '</mark>';
+      pos = ee;
+    }
+    return html + esc(text.slice(pos, to));
+  }
+  function snippetHTML(v) {
+    if (!state.words.length) return '';
+    var desc = v.description || '';
+    if (!desc.trim()) return '';
+    var ranges = matchRanges(v._d), from = 0;
+    if (ranges.length) from = Math.min(Math.max(0, ranges[0][0] - 45), Math.max(0, desc.length - 200));
+    var to = Math.min(desc.length, from + 200);
+    return (from > 0 ? '…' : '') + renderWithMarks(desc, ranges, from, to) + (to < desc.length ? '…' : '');
+  }
+
+  // =========================================================================
+  // 作るリスト
+  // =========================================================================
+  function cartIds() { return Object.keys(state.cart); }
+  function inCart(id) { return state.cart[id] != null; }
+  function toggleCart(id) {
+    if (inCart(id)) delete state.cart[id]; else state.cart[id] = 1;
+    saveCart(); renderSidebar(); render();
+  }
+  function videoById(id) {
+    for (var i = 0; i < state.videos.length; i++) if (state.videos[i].videoId === id) return state.videos[i];
+    return null;
+  }
+
+  /**
+   * 買い物リストを組み立てる。
+   * 同じ食材の分量を合算し、足せないものは併記する。
+   */
+  function buildShoppingList() {
+    var map = new Map();   // canonical name -> { entries, recipes }
+    cartIds().forEach(function (id) {
+      var v = videoById(id);
+      if (!v) return;
+      var factor = Number(state.cart[id]) || 1;
+      v._raw.forEach(function (x) {
+        var name = canon(x.name);
+        if (!map.has(name)) map.set(name, { name: name, entries: [], recipes: new Set() });
+        var slot = map.get(name);
+        slot.entries.push({ text: x.amount, factor: factor });
+        slot.recipes.add(v.title);
+      });
+    });
+
+    var rows = [];
+    map.forEach(function (slot) {
+      var conv = weightConvOf(slot.name);
+      var sum = sumScaled(slot.entries, conv);
+      rows.push({
+        name: slot.name,
+        amount: sum.text,
+        exact: sum.exact,
+        converted: sum.converted,
+        count: slot.recipes.size,
+        pantry: isPantry(slot.name)
+      });
+    });
+    rows.sort(function (a, b) {
+      if (a.pantry !== b.pantry) return a.pantry ? 1 : -1;
+      return b.count - a.count || a.name.localeCompare(b.name, 'ja');
+    });
+    return rows;
+  }
+
+  // =========================================================================
+  // 描画: サイドバー
+  // =========================================================================
+  function renderSidebar() {
+    renderCart();
+    renderIngredients();
+    renderWordChips();
+    renderProgress();
+  }
+
+  function renderCart() {
+    var ids = cartIds();
+    var wrap = $('cartList');
+    if (!ids.length) {
+      wrap.innerHTML = '<div style="padding:12px;font-size:12px;color:var(--text-dim)">' +
+        'カードの「作る」を押すと、ここに溜まります。</div>';
+      $('shopBtn').disabled = true;
+      $('shopBtn').textContent = '買い物リストを作る';
+      return;
+    }
+    wrap.innerHTML = ids.map(function (id) {
+      var v = videoById(id);
+      var title = v ? v.title : id;
+      var mul = Number(state.cart[id]) || 1;
+      var opts = [1, 1.5, 2, 3, 4].map(function (m) {
+        return '<option value="' + m + '"' + (m === mul ? ' selected' : '') + '>×' + m + '</option>';
+      }).join('');
+      return '<div class="cart-row">' +
+        '<span class="t" title="' + esc(title) + '">' + esc(title) + '</span>' +
+        '<select data-mul="' + esc(id) + '">' + opts + '</select>' +
+        '<button data-rm="' + esc(id) + '" title="外す">×</button></div>';
+    }).join('');
+
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-mul]'), function (sel) {
+      sel.onchange = function () { state.cart[sel.dataset.mul] = Number(sel.value); saveCart(); };
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-rm]'), function (b) {
+      b.onclick = function () { toggleCart(b.dataset.rm); };
+    });
+
+    $('shopBtn').disabled = false;
+    $('shopBtn').textContent = '買い物リストを作る（' + ids.length + '品）';
+  }
+
+  function renderIngredients() {
+    var selWrap = $('selected');
+    selWrap.innerHTML = Array.from(state.selected).map(function (name) {
+      return '<span class="chip">' + esc(name) + '<button data-unsel="' + esc(name) + '" title="解除">×</button></span>';
+    }).join('');
+    Array.prototype.forEach.call(selWrap.querySelectorAll('[data-unsel]'), function (b) {
+      b.onclick = function () { state.selected.delete(b.dataset.unsel); renderIngredients(); render(); };
+    });
+
+    var pool = filtered(), live = new Map();
+    pool.forEach(function (v) {
+      var seen = new Set();
+      v._ing.forEach(function (n) {
+        if (seen.has(n)) return;
+        seen.add(n);
+        live.set(n, (live.get(n) || 0) + 1);
+      });
+    });
+
+    var q = norm(state.ingQuery);
+    var items = state.ingIndex
+      .filter(function (i) { return !q || i.n.indexOf(q) !== -1; })
+      .map(function (i) { return { name: i.name, count: live.get(i.name) || 0, total: i.total }; });
+
+    items.sort(function (a, b) {
+      var sa = state.selected.has(a.name) ? 1 : 0, sb = state.selected.has(b.name) ? 1 : 0;
+      if (sa !== sb) return sb - sa;
+      return b.count - a.count || b.total - a.total || a.name.localeCompare(b.name, 'ja');
+    });
+    items = items.slice(0, 400);
+
+    $('ingList').innerHTML = items.map(function (i) {
+      var cls = 'ing-item' + (state.selected.has(i.name) ? ' on' : '') + (i.count === 0 ? ' zero' : '');
+      var c = i.count === i.total ? String(i.count) : (i.count + ' / ' + i.total);
+      return '<button class="' + cls + '" data-ing="' + esc(i.name) + '">' +
+             '<span class="n">' + esc(i.name) + '</span><span class="c">' + c + '</span></button>';
+    }).join('') || '<div style="padding:14px;font-size:12px;color:var(--text-dim)">該当する食材がありません</div>';
+
+    Array.prototype.forEach.call($('ingList').querySelectorAll('[data-ing]'), function (b) {
+      b.onclick = function () {
+        var n = b.dataset.ing;
+        if (state.selected.has(n)) state.selected.delete(n); else state.selected.add(n);
+        renderIngredients(); render();
+      };
+    });
+  }
+
+  function renderWordChips() {
+    var wrap = $('wordChips');
+    wrap.innerHTML = state.words.map(function (w, i) {
+      return '<span class="chip word">' + esc(w) + '<button data-delw="' + i + '" title="削除">×</button></span>';
+    }).join('');
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-delw]'), function (b) {
+      b.onclick = function () { state.words.splice(Number(b.dataset.delw), 1); renderIngredients(); renderWordChips(); render(); };
+    });
+  }
+
+  function renderProgress() {
+    var total = state.videos.length;
+    var done = state.videos.filter(function (v) { return v._ing.length > 0; }).length;
+    var withAmt = 0;
+    state.videos.forEach(function (v) {
+      if (v._raw.length && v._raw.every(function (x) { return x.amount; })) withAmt++;
+    });
+    var pct = total ? Math.round(done / total * 100) : 0;
+    $('progressText').innerHTML = '登録済み <b>' + done + '</b> / ' + total + ' 本（' + pct + '%）' +
+      '<br>うち分量まで揃っている: ' + withAmt + ' 本';
+    $('progressBar').style.width = pct + '%';
+  }
+
+  // =========================================================================
+  // 描画: 結果
+  // =========================================================================
+  function render() {
+    var list = filtered();
+    $('count').innerHTML = '<b>' + list.length + '</b> 件';
+    if (!list.length) {
+      $('results').innerHTML = '<div class="empty"><h2>該当する動画がありません</h2>' +
+        '<p>食材の選択を減らすか、AND を OR に切り替えてみてください。</p></div>';
+      return;
+    }
+    $('results').innerHTML = '<div class="grid">' + list.map(cardHTML).join('') + '</div>';
+
+    Array.prototype.forEach.call($('results').querySelectorAll('[data-open]'), function (el) {
+      el.onclick = function () { openModal(el.dataset.open); };
+    });
+    Array.prototype.forEach.call($('results').querySelectorAll('[data-fav]'), function (el) {
+      el.onclick = function (e) { e.stopPropagation(); toggleFav(el.dataset.fav); };
+    });
+    Array.prototype.forEach.call($('results').querySelectorAll('[data-cart]'), function (el) {
+      el.onclick = function (e) { e.stopPropagation(); toggleCart(el.dataset.cart); };
+    });
+  }
+
+  function cardHTML(v) {
+    var hits = matchedIdx(v);
+    var ordered = v._ing.map(function (n, i) { return { n: n, hit: hits.has(i) }; })
+      .sort(function (a, b) { return (b.hit ? 1 : 0) - (a.hit ? 1 : 0); });
+    var shown = ordered.slice(0, 6), rest = ordered.length - shown.length;
+    var memo = (state.memos[v.videoId] || '').trim();
+    var fav = state.favs.has(v.videoId), cart = inCart(v.videoId);
+    var snip = snippetHTML(v);
+
+    var tags = v._ing.length
+      ? shown.map(function (o) { return '<span class="tag ' + (o.hit ? 'hit' : '') + '">' + esc(o.n) + '</span>'; }).join('') +
+        (rest > 0 ? '<span class="tag more">+' + rest + '</span>' : '')
+      : '<span class="tag empty">食材が未登録</span>';
+
+    return '<article class="card' + (cart ? ' in-cart' : '') + '">' +
+      '<div class="thumb-wrap" data-open="' + esc(v.videoId) + '">' +
+        (v.thumbnail ? '<img loading="lazy" src="' + esc(v.thumbnail) + '" alt="">' : '') +
+        (isShort(v) ? '<span class="badge short">ショート</span>' : '') +
+        '<button class="fav-btn ' + (fav ? 'on' : '') + '" data-fav="' + esc(v.videoId) + '" title="お気に入り">' +
+          (fav ? '★' : '☆') + '</button>' +
+      '</div>' +
+      '<div class="card-body">' +
+        '<h3 data-open="' + esc(v.videoId) + '">' + renderWithMarks(v.title, matchRanges(v._t), 0, v.title.length) + '</h3>' +
+        '<div class="card-meta">' + esc(fmtDate(v.publishedAt)) +
+          (v.durationSec ? ' ・ ' + esc(fmtDur(v.durationSec)) : '') +
+          (v.viewCount ? ' ・ ' + esc(fmtViews(v.viewCount)) : '') + '</div>' +
+        '<div class="ing-preview">' + tags + '</div>' +
+        (snip ? '<div class="snippet">' + snip + '</div>' : '') +
+        (memo ? '<div class="memo-flag">✎ ' + esc(memo.slice(0, 40)) + (memo.length > 40 ? '…' : '') + '</div>' : '') +
+        '<div class="card-actions">' +
+          '<button class="' + (cart ? 'cart-on' : '') + '" data-cart="' + esc(v.videoId) + '">' +
+            (cart ? '作る ✓' : '＋作る') + '</button>' +
+          '<button data-open="' + esc(v.videoId) + '">' + (EDIT ? '食材を編集' : '材料') + '</button>' +
+          '<a href="' + esc(v.url) + '" target="_blank" rel="noopener">動画</a>' +
+        '</div>' +
+      '</div></article>';
+  }
+
+  // =========================================================================
+  // モーダル: 食材の編集
+  // =========================================================================
+  function openModal(videoId) {
+    var v = videoById(videoId);
+    if (!v) return;
+    var fav = state.favs.has(v.videoId);
+    var descHTML = v.description.trim()
+      ? renderWithMarks(v.description, matchRanges(v._d), 0, v.description.length)
+      : '(概要欄なし)';
+
+    $('modal').innerHTML =
+      '<button class="close" id="mClose" title="閉じる">×</button>' +
+      '<h2>' + esc(v.title) + '</h2>' +
+      '<div class="m-meta">' + esc(fmtDate(v.publishedAt)) +
+        (v.durationSec ? ' ・ ' + esc(fmtDur(v.durationSec)) : '') +
+        (v.viewCount ? ' ・ ' + esc(fmtViews(v.viewCount)) : '') +
+        (isShort(v) ? ' ・ ショート' : '') + '</div>' +
+      (EDIT
+        ? '<div class="edit-split">' +
+            '<div class="col">' +
+              '<h4>食材と分量（1行に1つ）<span class="saved" id="mSaved"></span></h4>' +
+              '<textarea class="field" id="mIng" placeholder="玉ねぎ 1/2個&#10;豚バラ肉 100g&#10;醤油">' +
+                esc(ingToText(v._raw)) + '</textarea>' +
+              '<p class="hint">食材名と分量をスペースで区切ってください。分量は省略できます（調味料など）。</p>' +
+              '<div class="quickpick" id="mQuick"></div>' +
+            '</div>' +
+            '<div class="col">' +
+              '<h4>概要欄</h4><pre>' + descHTML + '</pre>' +
+            '</div>' +
+          '</div>'
+        : '<h4>材料</h4>' +
+          (v._raw.length
+            ? '<table class="shop-table"><tbody>' + v._raw.map(function (x) {
+                return '<tr><td>' + esc(canon(x.name)) + '</td>' +
+                       '<td class="amt">' + esc(x.amount || '') + '</td></tr>';
+              }).join('') + '</tbody></table>'
+            : '<p class="hint">この動画は材料が登録されていません。下の概要欄をご覧ください。</p>') +
+          '<h4>概要欄</h4><pre>' + descHTML + '</pre>'
+      ) +
+      '<h4>メモ</h4>' +
+      '<textarea class="field" id="mMemo" placeholder="アレンジ、家族の反応、次回の改善点など">' +
+        esc(state.memos[v.videoId] || '') + '</textarea>' +
+      '<div class="modal-actions">' +
+        '<a class="btn primary" href="' + esc(v.url) + '" target="_blank" rel="noopener">YouTube で見る</a>' +
+        '<button class="btn" id="mCart">' + (inCart(v.videoId) ? '作るリストから外す' : '＋ 作るリストに追加') + '</button>' +
+        '<button class="btn" id="mFav">' + (fav ? '★ お気に入り解除' : '☆ お気に入りに追加') + '</button>' +
+        '<button class="btn" id="mPrev">← 前</button>' +
+        '<button class="btn" id="mNext">次 →</button>' +
+      '</div>';
+
+    // 編集画面だけ横並びのため幅を広げる（閲覧時のレイアウトには影響しない）
+    if (EDIT) $('modal').classList.add('wide');
+    else $('modal').classList.remove('wide');
+    $('modalBg').classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    var timer;
+    if (EDIT) $('mIng').oninput = function (e) {
+      var list = parseIngInput(e.target.value);
+      if (list.length) state.ing[v.videoId] = list; else delete state.ing[v.videoId];
+      saveIng();
+      applyIngToVideo(v);
+      markDirty();
+      $('mSaved').textContent = '下書き保存';
+      clearTimeout(timer);
+      timer = setTimeout(function () { var el = $('mSaved'); if (el) el.textContent = ''; }, 1200);
+    };
+    $('mMemo').oninput = function (e) {
+      var val = e.target.value;
+      if (val.trim()) state.memos[v.videoId] = val; else delete state.memos[v.videoId];
+      saveMemos();
+    };
+    $('mClose').onclick = closeModal;
+    $('mFav').onclick = function () { toggleFav(v.videoId); openModal(v.videoId); };
+    $('mCart').onclick = function () { toggleCart(v.videoId); openModal(v.videoId); };
+
+    var list = filtered(), idx = list.indexOf(v);
+    $('mPrev').onclick = function () { if (idx > 0) openModal(list[idx - 1].videoId); };
+    $('mNext').onclick = function () { if (idx >= 0 && idx < list.length - 1) openModal(list[idx + 1].videoId); };
+    $('mPrev').disabled = idx <= 0;
+    $('mNext').disabled = idx < 0 || idx >= list.length - 1;
+
+    if (EDIT) {
+      var quick = state.ingIndex.slice(0, 24);
+      $('mQuick').innerHTML = quick.length
+        ? '<span class="quick-label">よく使う食材:</span>' + quick.map(function (i) {
+            return '<button class="quick" data-q="' + esc(i.name) + '">' + esc(i.name) + '</button>';
+          }).join('') : '';
+      Array.prototype.forEach.call($('mQuick').querySelectorAll('[data-q]'), function (b) {
+        b.onclick = function () {
+          var ta = $('mIng');
+          ta.value = (ta.value.replace(/\s*$/, '') + '\n' + b.dataset.q + ' ').replace(/^\n/, '');
+          ta.dispatchEvent(new Event('input'));
+          ta.focus();
+          ta.setSelectionRange(ta.value.length, ta.value.length);
+        };
+      });
+      $('mIng').focus();
+    }
+  }
+
+  function closeModal() {
+    $('modalBg').classList.remove('open');
+    $('modal').classList.remove('wide');
+    document.body.style.overflow = '';
+    rebuildIndex();
+    renderSidebar();
+    render();
+  }
+
+  function toggleFav(id) {
+    if (state.favs.has(id)) state.favs.delete(id); else state.favs.add(id);
+    saveFavs(); render();
+  }
+
+  // =========================================================================
+  // モーダル: 買い物リスト
+  // =========================================================================
+  function openShoppingModal() {
+    var rows = buildShoppingList();
+    var visible = rows.filter(function (r) { return !(state.excludePantry && r.pantry); });
+    var hidden = rows.filter(function (r) { return state.excludePantry && r.pantry; });
+
+    var mixed = visible.filter(function (r) { return r.amount && r.amount.indexOf('＋') !== -1; }).length;
+    var convCount = visible.filter(function (r) { return r.converted; }).length;
+
+    var body = visible.length
+      ? '<table class="shop-table"><thead><tr><th>食材</th><th style="text-align:right">分量</th><th></th></tr></thead><tbody>' +
+        visible.map(function (r) {
+          // 分量が空なのは異常ではない（調味料などは意図的に入れない運用）。
+          // 警告ではなく「—」で静かに示す。
+          return '<tr' + (r.amount ? '' : ' class="warn"') + '>' +
+            '<td>' + esc(r.name) + '</td>' +
+            '<td class="amt">' + (r.amount ? esc(r.amount) : '—') + '</td>' +
+            '<td class="src">' + (r.count > 1 ? r.count + '品で使用' : '') + '</td></tr>';
+        }).join('') + '</tbody></table>'
+      : '<div class="empty"><h2>買うものがありません</h2><p>作るリストに料理を追加してください。</p></div>';
+
+    var cartTitles = cartIds().map(function (id) {
+      var v = videoById(id);
+      var mul = Number(state.cart[id]) || 1;
+      return '<div class="cart-row"><span class="t">' + esc(v ? v.title : id) + '</span>' +
+             '<span style="color:var(--text-dim);font-size:11px">×' + mul + '</span></div>';
+    }).join('');
+
+    $('modal').innerHTML =
+      '<button class="close" id="sClose" title="閉じる">×</button>' +
+      '<h2>買い物リスト</h2>' +
+      '<div class="m-meta">' + cartIds().length + ' 品ぶん</div>' +
+      '<div class="recipe-rows">' + cartTitles + '</div>' +
+      '<label class="toggle-row"><input type="checkbox" id="sPantry"' + (state.excludePantry ? ' checked' : '') + '>' +
+        '常備品（調味料など）を除く' + (hidden.length ? '（' + hidden.length + '件を非表示）' : '') + '</label>' +
+      '<label class="toggle-row"><input type="checkbox" id="sConv"' + (state.useWeightConv ? ' checked' : '') + '>' +
+        'グラム表記を個数に換算する</label>' +
+      '<h4>買うもの</h4>' + body +
+      (convCount ? '<div class="note">' + convCount + ' 件を重さから個数に換算しました。1個あたりの重さは概要欄の記載（「玉ねぎ1個（200g）」など）から求めた<b>目安</b>です。実物の大きさで前後します。</div>' : '') +
+      (mixed ? '<div class="note">「＋」でつないだ分量は、単位が違って足せなかったものです（個数と重量など）。換算表に無いものは推定せずそのまま並べています。</div>' : '') +
+      '<div class="modal-actions">' +
+        '<button class="btn primary" id="sCopy">リストをコピー</button>' +
+        '<button class="btn" id="sWeightEdit">重さの換算表</button>' +
+        '<button class="btn" id="sPantryEdit">常備品を編集</button>' +
+        '<button class="btn" id="sClear">作るリストを空にする</button>' +
+      '</div>';
+
+    $('modal').classList.remove('wide');
+    $('modalBg').classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    $('sClose').onclick = closeModal;
+    $('sPantry').onchange = function (e) { state.excludePantry = e.target.checked; openShoppingModal(); };
+    $('sConv').onchange = function (e) { state.useWeightConv = e.target.checked; openShoppingModal(); };
+    $('sPantryEdit').onclick = openPantryModal;
+    $('sWeightEdit').onclick = openWeightModal;
+    $('sClear').onclick = function () {
+      if (!confirm('作るリストを空にします。よろしいですか？')) return;
+      state.cart = {}; saveCart(); closeModal();
+    };
+    $('sCopy').onclick = function () {
+      var text = '【買い物リスト】\n' +
+        visible.map(function (r) { return '・' + r.name + (r.amount ? '　' + r.amount : ''); }).join('\n') +
+        '\n\n【作る料理】\n' + cartIds().map(function (id) {
+          var v = videoById(id);
+          var mul = Number(state.cart[id]) || 1;
+          return '・' + (v ? v.title : id) + (mul !== 1 ? '（×' + mul + '）' : '');
+        }).join('\n');
+      navigator.clipboard.writeText(text).then(
+        function () {
+          $('sCopy').textContent = 'コピーしました';
+          setTimeout(function () { var b = $('sCopy'); if (b) b.textContent = 'リストをコピー'; }, 1500);
+        },
+        function () { $('sCopy').textContent = 'コピーできませんでした'; }
+      );
+    };
+  }
+
+  // =========================================================================
+  // モーダル: 表記ゆれ / 常備品
+  // =========================================================================
+  function aliasToText(list) { return list.map(function (g) { return g.join('、'); }).join('\n'); }
+  function textToAlias(text) {
+    return String(text || '').split(/[\n\r]+/).map(function (line) {
+      return line.split(/[、,，]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    }).filter(function (g) { return g.length >= 2; });
+  }
+
+  function openAliasModal() {
+    $('modal').innerHTML =
+      '<button class="close" id="aClose" title="閉じる">×</button>' +
+      '<h2>表記ゆれをまとめる</h2>' +
+      '<p class="hint" style="margin-bottom:14px">1行に1グループ。<b>先頭が代表名</b>で、以降がその別名です。読点で区切ってください。<br>' +
+        '例:　生姜、しょうが、ショウガ</p>' +
+      '<textarea class="field" id="aText" style="min-height:320px">' + esc(aliasToText(state.aliases)) + '</textarea>' +
+      '<p class="hint">似ているだけの別物（中華の素と鶏ガラスープの素など）を同じ行に入れると、検索結果が静かに間違います。</p>' +
+      '<div class="modal-actions">' +
+        '<button class="btn primary" id="aSave">保存する</button>' +
+        '<button class="btn" id="aReset">初期値に戻す</button></div>';
+    $('modal').classList.remove('wide');
+    $('modalBg').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    $('aClose').onclick = closeModal;
+    $('aSave').onclick = function () {
+      state.aliases = textToAlias($('aText').value);
+      saveAlias();
+      if (EDIT) markDirty();
+      closeModal();
+    };
+    $('aReset').onclick = function () {
+      if (!confirm('初期値に戻します。編集内容は失われます。よろしいですか？')) return;
+      state.aliases = DEFAULT_ALIASES.slice(); saveAlias();
+      $('aText').value = aliasToText(state.aliases);
+    };
+  }
+
+  /** 換算表を「玉ねぎ 1個 = 200g」形式のテキストにする */
+  function weightsToText(obj) {
+    return Object.keys(obj).map(function (k) {
+      var w = obj[k];
+      if (!w || !w.per) return '';
+      var name = w.name || k.split('|')[0];
+      return name + ' 1' + w.unit + ' = ' + w.per + 'g';
+    }).filter(Boolean).sort().join('\n');
+  }
+
+  function textToWeights(text) {
+    var out = {};
+    String(text || '').split(/[\n\r]+/).forEach(function (line) {
+      var s = line.trim();
+      if (!s) return;
+      // 「玉ねぎ 1個 = 200g」
+      var m = s.match(/^(.+?)\s+1\s*(\S+?)\s*[=＝]\s*([0-9]+(?:\.[0-9]+)?)\s*(kg|g)?\s*$/i);
+      if (!m) return;
+      var name = m[1].trim();
+      var unit = m[2].trim();
+      var per = Number(m[3]);
+      if (/kg/i.test(m[4] || '')) per *= 1000;
+      if (!name || !unit || !per) return;
+      // manual を立てておくと build-draft.mjs の自動整理で消されない
+      out[name + '|' + unit] = { name: name, unit: unit, per: Math.round(per), samples: 1, manual: true };
+    });
+    return out;
+  }
+
+  function openWeightModal() {
+    $('modal').innerHTML =
+      '<button class="close" id="wClose" title="閉じる">×</button>' +
+      '<h2>重さの換算表</h2>' +
+      '<p class="hint" style="margin-bottom:14px">1行に1つ、<b>「食材名 1単位 = 重さ」</b>の形で書きます。<br>' +
+        '例:　玉ねぎ 1個 = 200g<br>' +
+        'これがあると「玉ねぎ 1/2個 ＋ 100g」を「玉ねぎ 1個」にまとめられます。<br>' +
+        '概要欄に「玉ねぎ1個（200g）」のような記載があれば、<code>build-draft.mjs</code> が自動で集めます。<br>' +
+        '<b>肉・魚介は自動収集の対象外です</b>（買うときにグラム数が分かるため）。必要なら手で足せます。</p>' +
+      '<textarea class="field" id="wText" style="min-height:320px">' + esc(weightsToText(state.unitWeights)) + '</textarea>' +
+      '<p class="hint">野菜の大きさは個体差が大きいので、あくまで目安です。おかしい値は直してください。</p>' +
+      '<div class="modal-actions">' +
+        '<button class="btn primary" id="wSave">保存する</button>' +
+        '<button class="btn" id="wBack">買い物リストに戻る</button></div>';
+    $('modal').classList.remove('wide');
+    $('modalBg').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    $('wClose').onclick = closeModal;
+    $('wSave').onclick = function () {
+      state.unitWeights = textToWeights($('wText').value);
+      saveWeights(); rebuildWeights();
+      if (EDIT) markDirty();
+      openShoppingModal();
+    };
+    $('wBack').onclick = openShoppingModal;
+  }
+
+  function openPantryModal() {
+    $('modal').innerHTML =
+      '<button class="close" id="pClose" title="閉じる">×</button>' +
+      '<h2>常備品</h2>' +
+      '<p class="hint" style="margin-bottom:14px">1行に1つ。ここに書いた食材は買い物リストから外れます。<br>' +
+        '家に常にあるもの（調味料など）を入れてください。</p>' +
+      '<textarea class="field" id="pText" style="min-height:300px">' + esc(state.pantry.join('\n')) + '</textarea>' +
+      '<div class="modal-actions">' +
+        '<button class="btn primary" id="pSave">保存する</button>' +
+        '<button class="btn" id="pReset">初期値に戻す</button>' +
+        '<button class="btn" id="pBack">買い物リストに戻る</button></div>';
+    $('modal').classList.remove('wide');
+    $('modalBg').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    $('pClose').onclick = closeModal;
+    $('pSave').onclick = function () {
+      state.pantry = $('pText').value.split(/[\n\r]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+      savePantry(); rebuildPantry();
+      if (EDIT) markDirty();
+      openShoppingModal();
+    };
+    $('pReset').onclick = function () {
+      if (!confirm('初期値に戻します。よろしいですか？')) return;
+      state.pantry = DEFAULT_PANTRY.slice(); savePantry(); rebuildPantry();
+      $('pText').value = state.pantry.join('\n');
+    };
+    $('pBack').onclick = openShoppingModal;
+  }
+
+  // =========================================================================
+  // イベント
+  // =========================================================================
+  function bindEvents() {
+    var t1;
+    $('ingSearch').oninput = function (e) {
+      clearTimeout(t1);
+      var val = e.target.value;
+      t1 = setTimeout(function () { state.ingQuery = val; renderIngredients(); }, 120);
+    };
+
+    var q = $('q'), composing = false;
+    q.addEventListener('compositionstart', function () { composing = true; });
+    q.addEventListener('compositionend', function () { composing = false; });
+    q.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        if (composing || e.isComposing) return;
+        e.preventDefault(); addWord(q.value); q.value = '';
+      } else if (e.key === 'Backspace' && !q.value && state.words.length) {
+        state.words.pop(); renderIngredients(); renderWordChips(); render();
+      }
+    });
+    $('addBtn').onclick = function () { addWord(q.value); q.value = ''; q.focus(); };
+    function addWord(text) {
+      var w = String(text || '').trim();
+      if (!w || !norm(w) || state.words.indexOf(w) !== -1) return;
+      state.words.push(w); renderIngredients(); renderWordChips(); render();
+    }
+
+    function setMode(m) {
+      state.mode = m;
+      $('modeAnd').classList.toggle('on', m === 'and');
+      $('modeOr').classList.toggle('on', m === 'or');
+      renderIngredients(); render();
+    }
+    $('modeAnd').onclick = function () { setMode('and'); };
+    $('modeOr').onclick = function () { setMode('or'); };
+    $('clearIng').onclick = function () { state.selected.clear(); renderIngredients(); render(); };
+
+    var tabs = { all: $('tabAll'), fav: $('tabFav'), memo: $('tabMemo'), todo: $('tabTodo') };
+    Object.keys(tabs).forEach(function (k) {
+      tabs[k].onclick = function () {
+        state.tab = k;
+        Object.keys(tabs).forEach(function (x) { tabs[x].classList.remove('on'); });
+        tabs[k].classList.add('on');
+        renderIngredients(); render();
+      };
+    });
+
+    var durBtns = { all: $('durAll'), long: $('durLong'), short: $('durShort') };
+    Object.keys(durBtns).forEach(function (k) {
+      durBtns[k].onclick = function () {
+        state.dur = k;
+        Object.keys(durBtns).forEach(function (x) { durBtns[x].classList.remove('on'); });
+        durBtns[k].classList.add('on');
+        renderIngredients(); render();
+      };
+    });
+
+    $('sort').onchange = function (e) { state.sort = e.target.value; render(); };
+    $('menuToggle').onclick = function () { $('sidebar').classList.toggle('collapsed'); };
+    $('aliasBtn').onclick = openAliasModal;
+    $('pantryBtn').onclick = openPantryModal;
+    $('pantryBtn2').onclick = openPantryModal;
+    $('weightBtn').onclick = openWeightModal;
+    $('shopBtn').onclick = openShoppingModal;
+    $('saveIngBtn').onclick = function () { saveIngredientsFile(); };
+    $('clearCart').onclick = function () {
+      if (!cartIds().length) return;
+      if (!confirm('作るリストを空にします。よろしいですか？')) return;
+      state.cart = {}; saveCart(); renderSidebar(); render();
+    };
+
+    $('modalBg').onclick = function (e) { if (e.target === $('modalBg')) closeModal(); };
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && $('modalBg').classList.contains('open')) closeModal();
+    });
+
+    $('exportIng').onclick = function () { download('ingredients.json', ingredientsPayload()); };
+    $('importIng').onchange = function (e) {
+      var f = e.target.files[0];
+      if (!f) return;
+      var fr = new FileReader();
+      fr.onload = function () {
+        try {
+          var j = JSON.parse(fr.result);
+          if (!confirm('読み込んだ内容で食材データを置き換えます。\nこのブラウザで編集した内容は破棄されます。よろしいですか？')) return;
+          var n = applyIngredientsFile(j, true);
+          rebuildIndex(); renderSidebar(); render();
+          state.dirty = false; updateSaveButton();
+          alert(n + ' 本の食材データを読み込みました。');
+        } catch (err) { alert('読み込みに失敗しました: ' + err.message); }
+      };
+      fr.readAsText(f, 'utf-8');
+    };
+
+    $('exportBtn').onclick = function () {
+      download('tonityu-favorites.json', JSON.stringify({ favs: Array.from(state.favs), memos: state.memos }, null, 2));
+    };
+    $('importPick').onchange = function (e) {
+      var f = e.target.files[0];
+      if (!f) return;
+      var fr = new FileReader();
+      fr.onload = function () {
+        try {
+          var j = JSON.parse(fr.result);
+          if (Array.isArray(j.favs)) { state.favs = new Set(j.favs); saveFavs(); }
+          if (j.memos && typeof j.memos === 'object') { state.memos = j.memos; saveMemos(); }
+          render(); alert('読み込みました。');
+        } catch (err) { alert('読み込みに失敗しました: ' + err.message); }
+      };
+      fr.readAsText(f, 'utf-8');
+    };
+  }
+
+  function download(name, text) {
+    var blob = new Blob([text], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+})();
+</script>
+</body>
+</html>

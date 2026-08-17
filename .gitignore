@@ -1,0 +1,13 @@
+# APIキー。絶対にコミットしない
+apikey.txt
+.env
+
+# APIの生レスポンス。サイズが大きく、videos.json から復元できるものでもないが
+# 公開リポジトリに概要欄の全文を置かないため除外する
+raw.json
+
+# 作業用
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
