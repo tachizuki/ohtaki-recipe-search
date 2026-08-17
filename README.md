@@ -174,3 +174,4 @@ node fetch-videos.mjs --channel UCxxxxxxxx --out other.json
 - **チャンネル運営者の許可** — 概要欄の材料リストは著作物として保護され得ます
 - **YouTube API の利用規約** — Developer Policies ではデータの保存期間（原則30日以内にリフレッシュ）や動画リンクの表示が定められています
 - **表示のしかた** — 概要欄を全文掲載せず検索インデックスとして使い、実際のレシピは動画へ誘導する形が無難
+# ohtaki-recipe-search
