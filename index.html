@@ -783,8 +783,38 @@
    * これは隠しているだけで、セキュリティ対策ではない。
    * ただし編集内容の保存先は各自のブラウザ（localStorage）と手元のファイルだけで、
    * サーバーへ書き込む経路が存在しないため、他のユーザーには影響しない。
+   *
+   * それでも ?edit=1 を見つけただけの人が勝手に編集画面を触れてしまうのを防ぐため、
+   * 簡単な合言葉チェックを入れている。強固な認証ではなく、あくまで抑止目的。
+   * 合言葉を変える場合は EDIT_PASS_HASH を simpleHash('新しい合言葉') の結果に書き換える。
    */
-  var EDIT = /(?:^|[?&])edit=1(?:&|$)/.test(location.search);
+  var EDIT_REQUESTED = /(?:^|[?&])edit=1(?:&|$)/.test(location.search);
+  var EDIT_PASS_HASH = '8296760f';
+  var EDIT_AUTH_KEY = 'tonityuEditAuthOK';
+
+  function simpleHash(str) {
+    var h = 5381;
+    str = String(str || '');
+    for (var i = 0; i < str.length; i++) {
+      h = ((h << 5) + h + str.charCodeAt(i)) >>> 0;
+    }
+    return h.toString(16);
+  }
+
+  var EDIT = false;
+  if (EDIT_REQUESTED) {
+    if (sessionStorage.getItem(EDIT_AUTH_KEY) === EDIT_PASS_HASH) {
+      EDIT = true;
+    } else {
+      var editInput = prompt('編集モードの合言葉を入力してください（分からない場合はキャンセルで通常表示になります）');
+      if (editInput !== null && simpleHash(editInput) === EDIT_PASS_HASH) {
+        EDIT = true;
+        try { sessionStorage.setItem(EDIT_AUTH_KEY, EDIT_PASS_HASH); } catch (e) {}
+      } else if (editInput !== null) {
+        alert('合言葉が違います。通常の表示で開きます。');
+      }
+    }
+  }
 
   var state = {
     data: null, videos: [], ingIndex: [],
