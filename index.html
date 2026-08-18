@@ -388,21 +388,23 @@
     .modal-actions .btn { padding: 11px 14px; }
   }
 
-  /* --- スマホ（縦）ではカードを横並びのリストにして1列に並べる ---
-     .card-actions は .card ではなく .card-body の子なので、
-     ここで flex-grow を与えると縦方向を独占してタイトルが潰れる。触らないこと。 */
+  /* --- スマホ（縦）は2列のカード ---
+     サムネは 16:9 のまま縦横比を保つ。高さを引き伸ばすと object-fit: cover が
+     上下を切り落とすので、aspect-ratio には触らないこと。
+     .card-actions は .card ではなく .card-body の子。flex-grow を与えると
+     縦方向を独占してタイトルが潰れるので、これも触らないこと。 */
   @media (max-width: 600px) {
-    .grid { grid-template-columns: 1fr; gap: 8px; }
-    .card { flex-direction: row; }
+    .grid { gap: 8px; }
     .card:hover { transform: none; }
-    /* サムネはカードの高さいっぱいに伸ばす。
-       16:9 のままだと右の本文だけが伸びて、左に大きな空白が残る */
-    .thumb-wrap { flex: 0 0 132px; width: 132px; aspect-ratio: auto; align-self: stretch; min-height: 76px; }
-    .card-body { flex: 1 1 auto; min-width: 0; padding: 8px 10px 10px; gap: 5px; }
-    .card h3 { font-size: 13px; flex: 0 0 auto; }
-    .card-actions a, .card-actions button { padding: 9px 4px; font-size: 12.5px; }
-    .snippet { max-height: 58px; font-size: 11.5px; padding: 6px 8px; }
-    .fav-btn { width: 34px; height: 34px; }
+    .card-body { padding: 8px 9px 10px; gap: 5px; }
+    .card h3 { font-size: 12.5px; line-height: 1.4; }
+    .card-meta { font-size: 10.5px; }
+    .ing-preview { gap: 3px; }
+    .tag { font-size: 10.5px; padding: 1px 5px; }
+    .card-actions { gap: 4px; }
+    .card-actions a, .card-actions button { padding: 8px 2px; font-size: 11.5px; }
+    .snippet { max-height: 76px; font-size: 11px; padding: 6px 7px; }
+    .fav-btn { width: 32px; height: 32px; font-size: 14px; }
   }
 </style>
 </head>
@@ -1182,6 +1184,9 @@
     if (state.tab === 'fav' && !state.favs.has(v.videoId)) return false;
     if (state.tab === 'memo' && !(state.memos[v.videoId] || '').trim()) return false;
     if (state.tab === 'todo' && v._ing.length > 0) return false;
+    // 食材が未登録の動画は一覧に出さない（雑談回などが混ざるため）。
+    // 編集モードの「食材が未登録」タブは、それを探すためのタブなので例外。
+    if (state.tab !== 'todo' && v._ing.length === 0) return false;
     if (state.dur === 'long' && isShort(v)) return false;
     if (state.dur === 'short' && !isShort(v)) return false;
     for (var i = 0; i < state.words.length; i++) {
@@ -1470,11 +1475,15 @@
     });
   }
 
+  /** スマホの2列表示ではカードが細いので、タグを減らして縦に伸びるのを防ぐ */
+  function isNarrow() { return window.innerWidth <= 600; }
+
   function cardHTML(v) {
     var hits = matchedIdx(v);
     var ordered = v._ing.map(function (n, i) { return { n: n, hit: hits.has(i) }; })
       .sort(function (a, b) { return (b.hit ? 1 : 0) - (a.hit ? 1 : 0); });
-    var shown = ordered.slice(0, 6), rest = ordered.length - shown.length;
+    var limit = isNarrow() ? 3 : 6;
+    var shown = ordered.slice(0, limit), rest = ordered.length - shown.length;
     var memo = (state.memos[v.videoId] || '').trim();
     var fav = state.favs.has(v.videoId), cart = inCart(v.videoId);
     var snip = snippetHTML(v);
@@ -1892,6 +1901,18 @@
     });
 
     $('sort').onchange = function (e) { state.sort = e.target.value; render(); };
+
+    // 画面幅が 600px をまたいだ時だけ、タグの本数を変えるために描き直す
+    // （回転や、PCでのウィンドウ幅変更に追従させる）
+    var wasNarrow = isNarrow(), t2;
+    window.addEventListener('resize', function () {
+      clearTimeout(t2);
+      t2 = setTimeout(function () {
+        if (isNarrow() === wasNarrow) return;
+        wasNarrow = isNarrow();
+        render();
+      }, 150);
+    });
 
     // スマホ: 絞り込みドロワーの開閉
     $('mbFilter').onclick = openDrawer;
