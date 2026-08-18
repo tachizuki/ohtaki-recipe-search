@@ -277,17 +277,132 @@
   .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 28px; text-align: center; margin-top: 20px; color: var(--text-dim); }
   .drop.over { border-color: var(--accent); background: var(--panel); }
 
-  .menu-toggle { display: none; }
+  /* -------------------------------------------------------------------------
+     スマホ用のUI部品。
+     デスクトップには出さないので、既定では非表示にしておく。
+     ------------------------------------------------------------------------- */
+  .menu-toggle, .mobile-bar, .drawer-backdrop, .drawer-close, .drawer-apply,
+  .mobile-cart-bar { display: none; }
+
   @media (max-width: 880px) {
-    .app { flex-direction: column; }
-    .sidebar { width: 100%; flex: none; position: static; max-height: none; border-right: none; border-bottom: 1px solid var(--line); }
-    .sidebar.collapsed .collapsible { display: none; }
-    .menu-toggle {
-      display: block; width: 100%; margin-top: 10px; background: var(--panel);
-      border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; font-size: 13px;
+    /* --- 上部の固定バー。絞り込みの入口と件数をここに集約する --- */
+    .mobile-bar {
+      display: flex; align-items: center; gap: 10px;
+      position: fixed; left: 0; right: 0; top: 0; z-index: 40;
+      background: var(--bg-soft); border-bottom: 1px solid var(--line);
+      padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top));
     }
-    .main { padding: 16px; }
+    .mb-count { font-size: 12px; color: var(--text-dim); flex: 1; min-width: 0; }
+    .mb-count b { color: var(--text); font-size: 15px; }
+    .mb-filter {
+      flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+      padding: 7px 14px; font-size: 13px; color: var(--text); min-height: 38px;
+    }
+    .mb-filter.active { background: var(--accent-soft); border-color: var(--accent); font-weight: 700; }
+    .mb-badge {
+      background: var(--accent); color: #fff; border-radius: 999px;
+      min-width: 19px; padding: 0 5px; font-size: 11px; font-weight: 700;
+      line-height: 19px; text-align: center;
+    }
+
+    /* --- サイドバーは引き出し（ドロワー）にして、初期表示では隠す --- */
+    .app { flex-direction: column; }
+    .sidebar {
+      position: fixed; top: 0; right: 0; bottom: 0; left: auto;
+      width: min(92vw, 380px); flex: none; max-height: none; z-index: 60;
+      border-right: none; border-left: 1px solid var(--line);
+      padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+      transform: translateX(100%); transition: transform .22s ease;
+    }
+    body.drawer-open .sidebar { transform: translateX(0); }
+    body.drawer-open { overflow: hidden; }
+    .drawer-backdrop {
+      display: block; position: fixed; inset: 0; z-index: 55; background: rgba(0,0,0,.6);
+      opacity: 0; pointer-events: none; transition: opacity .22s ease;
+    }
+    body.drawer-open .drawer-backdrop { opacity: 1; pointer-events: auto; }
+    .drawer-close {
+      display: block; position: absolute; right: 10px; top: 10px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+      width: 36px; height: 36px; font-size: 20px; line-height: 1; color: var(--text);
+    }
+    .sidebar .brand h1 { font-size: 15px; padding-right: 44px; }
+    /* 作るリストは下部バーから開けるので、絞り込みより後ろに送る */
+    .collapsible { display: flex; flex-direction: column; }
+    .collapsible > .section.cart { order: 9; }
+    /* 閉じて結果に戻るためのボタン。指の届く下端に固定する。
+       左右に負のマージンを付けて端まで覆い、裏の文字が脇から覗かないようにする */
+    .drawer-apply {
+      display: block; position: sticky; bottom: 0; z-index: 2;
+      /* button は width:auto だと中身の幅に縮む。左右のパディング分を明示的に食い出す */
+      width: calc(100% + 32px); margin: 18px -16px calc(-24px - env(safe-area-inset-bottom));
+      background: var(--accent); border: 1px solid var(--accent); border-radius: 0;
+      color: #fff; font-weight: 700; font-size: 14px;
+      padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+      box-shadow: 0 -12px 18px -8px rgba(0,0,0,.85);
+    }
+
+    /* --- 本体。上下の固定バーに隠れないよう余白を確保する --- */
+    .main { padding: 14px 12px 24px; padding-top: calc(58px + env(safe-area-inset-top)); }
+    body.has-cart .main { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+
+    /* ツールバーは横スクロールの1行にして高さを取らない */
+    .toolbar { flex-wrap: nowrap; overflow-x: auto; gap: 8px; margin-bottom: 12px; scrollbar-width: none; }
+    .toolbar::-webkit-scrollbar { display: none; }
+    .toolbar > * { flex: 0 0 auto; }
+    .toolbar .spacer, .toolbar .count { display: none; }
+    .tabs button, .seg .mode-toggle button { min-height: 36px; }
+
     .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+
+    /* --- 下部の固定バー。作るリストに何か入っている時だけ出す --- */
+    body.has-cart .mobile-cart-bar {
+      display: flex; align-items: center; gap: 10px;
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+      background: var(--bg-soft); border-top: 1px solid var(--line);
+      padding: 10px 12px; padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    .mcb-label { font-size: 12px; color: var(--text-dim); flex: 1; min-width: 0; }
+    .mcb-label b { color: var(--gold); font-size: 15px; }
+    .mcb-btn {
+      flex: 0 0 auto; background: var(--gold); border: 1px solid var(--gold); color: #2a1e08;
+      font-weight: 700; border-radius: var(--radius); padding: 11px 16px; font-size: 13px;
+    }
+
+    /* 指で押しやすい大きさを確保する */
+    .ing-item { padding: 11px 12px; font-size: 14px; }
+    .chip { padding: 5px 8px 5px 12px; font-size: 13px; }
+    .chip button { font-size: 17px; padding: 0 4px; }
+    .linkbtn { font-size: 13px; }
+    .searchrow button { padding: 10px 16px; }
+    .field { padding: 10px 12px; }
+    .ing-list { max-height: 46vh; }
+
+    /* モーダルは画面いっぱいに使う */
+    .modal-bg { padding: 0; align-items: stretch; }
+    .modal { border-radius: 0; min-height: 100%; padding: 18px 14px calc(28px + env(safe-area-inset-bottom)); }
+    .modal h2 { font-size: 16px; margin-right: 40px; }
+    .modal .close { width: 36px; height: 36px; right: 8px; top: 8px; }
+    .modal-actions .btn { padding: 11px 14px; }
+  }
+
+  /* --- スマホ（縦）ではカードを横並びのリストにして1列に並べる ---
+     .card-actions は .card ではなく .card-body の子なので、
+     ここで flex-grow を与えると縦方向を独占してタイトルが潰れる。触らないこと。 */
+  @media (max-width: 600px) {
+    .grid { grid-template-columns: 1fr; gap: 8px; }
+    .card { flex-direction: row; }
+    .card:hover { transform: none; }
+    /* サムネはカードの高さいっぱいに伸ばす。
+       16:9 のままだと右の本文だけが伸びて、左に大きな空白が残る */
+    .thumb-wrap { flex: 0 0 132px; width: 132px; aspect-ratio: auto; align-self: stretch; min-height: 76px; }
+    .card-body { flex: 1 1 auto; min-width: 0; padding: 8px 10px 10px; gap: 5px; }
+    .card h3 { font-size: 13px; flex: 0 0 auto; }
+    .card-actions a, .card-actions button { padding: 9px 4px; font-size: 12.5px; }
+    .snippet { max-height: 58px; font-size: 11.5px; padding: 6px 8px; }
+    .fav-btn { width: 34px; height: 34px; }
   }
 </style>
 </head>
@@ -311,10 +426,16 @@
 </div>
 
 <div class="app" id="app" style="display:none">
+  <header class="mobile-bar">
+    <span class="mb-count" id="mbCount"></span>
+    <button class="mb-filter" id="mbFilter">絞り込み<span class="mb-badge" id="mbBadge" hidden>0</span></button>
+  </header>
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
   <aside class="sidebar" id="sidebar">
+    <button class="drawer-close" id="drawerClose" title="閉じる">×</button>
     <div class="brand"><h1>食材からさがす</h1></div>
     <div class="meta-line" id="metaLine"></div>
-    <button class="menu-toggle" id="menuToggle">絞り込み条件を開く / 閉じる</button>
 
     <div class="collapsible">
       <div class="section cart">
@@ -369,6 +490,8 @@
         <p class="hint"><button class="linkbtn" id="pantryBtn2">常備品を編集する</button></p>
       </div>
     </div>
+
+    <button class="drawer-apply" id="drawerApply">結果を見る</button>
   </aside>
 
   <main class="main">
@@ -399,6 +522,11 @@
     </div>
     <div id="results"></div>
   </main>
+
+  <div class="mobile-cart-bar">
+    <span class="mcb-label" id="mcbLabel"></span>
+    <button class="mcb-btn" id="mcbBtn">買い物リストを作る</button>
+  </div>
 </div>
 
 <div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
@@ -1175,6 +1303,34 @@
   }
 
   // =========================================================================
+  // スマホ用: 絞り込みドロワーと上下の固定バー
+  //
+  // 画面が広いときは CSS 側で全て非表示になるので、ここの処理は
+  // 実質スマホ幅のときだけ意味を持つ。要素は常に存在するため分岐は不要。
+  // =========================================================================
+  function openDrawer() { document.body.classList.add('drawer-open'); }
+  function closeDrawer() { document.body.classList.remove('drawer-open'); }
+
+  /** 上下の固定バーの表示を、今の絞り込み・作るリストの状態に合わせる */
+  function updateMobileBars(hitCount) {
+    // 絞り込みバッジ: 選択中の食材 + キーワードの数
+    var n = state.selected.size + state.words.length;
+    var badge = $('mbBadge');
+    badge.textContent = n;
+    badge.hidden = n === 0;
+    $('mbFilter').classList.toggle('active', n > 0);
+
+    if (typeof hitCount === 'number') {
+      $('mbCount').innerHTML = '<b>' + hitCount + '</b> 件';
+    }
+
+    // 作るリストが空なら下部バーごと消す（本体の余白も CSS 側で戻る）
+    var ids = cartIds();
+    document.body.classList.toggle('has-cart', ids.length > 0);
+    if (ids.length) $('mcbLabel').innerHTML = '作るリスト <b>' + ids.length + '</b> 品';
+  }
+
+  // =========================================================================
   // 描画: サイドバー
   // =========================================================================
   function renderSidebar() {
@@ -1182,6 +1338,7 @@
     renderIngredients();
     renderWordChips();
     renderProgress();
+    updateMobileBars();
   }
 
   function renderCart() {
@@ -1294,6 +1451,7 @@
   function render() {
     var list = filtered();
     $('count').innerHTML = '<b>' + list.length + '</b> 件';
+    updateMobileBars(list.length);
     if (!list.length) {
       $('results').innerHTML = '<div class="empty"><h2>該当する動画がありません</h2>' +
         '<p>食材の選択を減らすか、AND を OR に切り替えてみてください。</p></div>';
@@ -1405,6 +1563,7 @@
     if (EDIT) $('modal').classList.add('wide');
     else $('modal').classList.remove('wide');
     $('modalBg').classList.add('open');
+    closeDrawer();
     document.body.style.overflow = 'hidden';
 
     var timer;
@@ -1517,6 +1676,7 @@
 
     $('modal').classList.remove('wide');
     $('modalBg').classList.add('open');
+    closeDrawer();
     document.body.style.overflow = 'hidden';
 
     $('sClose').onclick = closeModal;
@@ -1569,6 +1729,7 @@
         '<button class="btn" id="aReset">初期値に戻す</button></div>';
     $('modal').classList.remove('wide');
     $('modalBg').classList.add('open');
+    closeDrawer();
     document.body.style.overflow = 'hidden';
     $('aClose').onclick = closeModal;
     $('aSave').onclick = function () {
@@ -1629,6 +1790,7 @@
         '<button class="btn" id="wBack">買い物リストに戻る</button></div>';
     $('modal').classList.remove('wide');
     $('modalBg').classList.add('open');
+    closeDrawer();
     document.body.style.overflow = 'hidden';
     $('wClose').onclick = closeModal;
     $('wSave').onclick = function () {
@@ -1653,6 +1815,7 @@
         '<button class="btn" id="pBack">買い物リストに戻る</button></div>';
     $('modal').classList.remove('wide');
     $('modalBg').classList.add('open');
+    closeDrawer();
     document.body.style.overflow = 'hidden';
     $('pClose').onclick = closeModal;
     $('pSave').onclick = function () {
@@ -1729,7 +1892,14 @@
     });
 
     $('sort').onchange = function (e) { state.sort = e.target.value; render(); };
-    $('menuToggle').onclick = function () { $('sidebar').classList.toggle('collapsed'); };
+
+    // スマホ: 絞り込みドロワーの開閉
+    $('mbFilter').onclick = openDrawer;
+    $('drawerClose').onclick = closeDrawer;
+    $('drawerBackdrop').onclick = closeDrawer;
+    $('drawerApply').onclick = closeDrawer;
+    $('mcbBtn').onclick = openShoppingModal;
+
     $('aliasBtn').onclick = openAliasModal;
     $('pantryBtn').onclick = openPantryModal;
     $('pantryBtn2').onclick = openPantryModal;
@@ -1744,7 +1914,9 @@
 
     $('modalBg').onclick = function (e) { if (e.target === $('modalBg')) closeModal(); };
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && $('modalBg').classList.contains('open')) closeModal();
+      if (e.key !== 'Escape') return;
+      if ($('modalBg').classList.contains('open')) closeModal();
+      else closeDrawer();
     });
 
     $('exportIng').onclick = function () { download('ingredients.json', ingredientsPayload()); };
