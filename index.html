@@ -1216,8 +1216,8 @@
     if (state.tab === 'memo' && !(state.memos[v.videoId] || '').trim()) return false;
     if (state.tab === 'todo' && v._ing.length > 0) return false;
     // 食材が未登録の動画は一覧に出さない（雑談回などが混ざるため）。
-    // 編集モードの「食材が未登録」タブは、それを探すためのタブなので例外。
-    if (state.tab !== 'todo' && v._ing.length === 0) return false;
+    // ただし編集モードでは、未登録の動画こそ見つけて材料を入力する対象なので隠さない。
+    if (!EDIT && state.tab !== 'todo' && v._ing.length === 0) return false;
     if (state.dur === 'long' && isShort(v)) return false;
     if (state.dur === 'short' && !isShort(v)) return false;
     for (var i = 0; i < state.words.length; i++) {
